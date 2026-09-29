@@ -20,6 +20,34 @@ const server = app.listen(env.port, () => {
   console.log("");
 });
 
+/**
+ * A raw EADDRINUSE stack trace is the most common way to get stuck on day one,
+ * so it gets a plain explanation with the command that fixes it.
+ */
+function handleListenError(error: NodeJS.ErrnoException): void {
+  if (error.code !== "EADDRINUSE") {
+    console.error("[server] No se pudo iniciar:", error.message);
+    process.exit(1);
+  }
+
+  console.log("");
+  console.log("  El puerto ya está ocupado. Casi siempre es otro FoodMood");
+  console.log("  corriendo en otra terminal.");
+  console.log("");
+  console.log("  Opción 1 · cerrar la otra terminal");
+  console.log("    Presiona Ctrl+C ahí y ya está.");
+  console.log("");
+  console.log("  Opción 2 · cerrarlo desde esta terminal");
+  console.log(`    Stop-Process -Id (Get-NetTCPConnection -LocalPort ${env.port} -State Listen).OwningProcess -Force`);
+  console.log("");
+  console.log("  Opción 3 · usar otro puerto");
+  console.log(`    $env:PORT=4100 ; npm run dev`);
+  console.log("");
+  process.exit(1);
+}
+
+server.on("error", handleListenError);
+
 function shutdown(signal: string): void {
   console.log(`\n[server] ${signal} recibido, cerrando...`);
   server.close(() => {
