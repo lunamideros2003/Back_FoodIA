@@ -1,0 +1,133 @@
+import type { DishSeed } from "./types.ts";
+
+export const DESSERT_DISHES: DishSeed[] = [
+  {
+    name: "Churros with Chocolate Sauce",
+    nameEs: "Churros con salsa de chocolate",
+    slug: "churros-chocolate-sauce",
+    category: "Postre",
+    description: "Churros crujientes espolvoreados con canela y azúcar, con chocolate fundido para mojar.",
+    prepMinutes: 30,
+    difficulty: "avanzada",
+    calories: 620,
+    proteinGrams: 10,
+    carbsGrams: 82,
+    fatGrams: 28,
+    priceLevel: 1,
+    tags: ["dulce", "español", "indulgente", "fin de semana", "postre"],
+    axes: { comfort: 0.93, energy: 0.78, speed: 0.35, lightness: 0.1, richness: 0.9, spice: 0.15, sweetness: 0.98, freshness: 0.05, protein: 0.18, indulgence: 0.98, warmth: 0.9, complexity: 0.7, value: 0.75 },
+    ingredients: [
+      { name: "flour", label: "Harina de trigo", category: "Grano", quantity: "250 g" },
+      { name: "water", label: "Agua", category: "Otros", quantity: "250 ml" },
+      { name: "dark_chocolate", label: "Chocolate 70%", category: "Endulzante", quantity: "150 g" },
+      { name: "cinnamon", label: "Canela", category: "Condimento", quantity: "1 cdta" },
+      { name: "sugar", label: "Azúcar", category: "Endulzante", quantity: "60 g" }
+    ],
+    isVegetarian: true,
+    isVegan: false,
+    containsGluten: true
+  },
+  {
+    name: "Molten Chocolate Lava Cake",
+    nameEs: "Volcán de chocolate",
+    slug: "molten-chocolate-lava-cake",
+    category: "Postre",
+    description: "Bizcocho tibio con centro de chocolate fundido y helado de vainilla. Quince minutos, efecto dramático.",
+    prepMinutes: 15,
+    difficulty: "media",
+    calories: 560,
+    proteinGrams: 9,
+    carbsGrams: 58,
+    fatGrams: 32,
+    priceLevel: 2,
+    tags: ["dulce", "indulgente", "postre", "cena", "chocolate"],
+    axes: { comfort: 0.9, energy: 0.8, speed: 0.55, lightness: 0.1, richness: 0.95, spice: 0, sweetness: 0.97, freshness: 0.02, protein: 0.2, indulgence: 0.96, warmth: 0.92, complexity: 0.55, value: 0.5 },
+    ingredients: [
+      { name: "dark_chocolate", label: "Chocolate 70%", category: "Endulzante", quantity: "200 g" },
+      { name: "butter", label: "Mantequilla", category: "Lácteo", quantity: "100 g" },
+      { name: "egg", label: "Huevo", category: "Huevo", quantity: "3 unidades" },
+      { name: "sugar", label: "Azúcar", category: "Endulzante", quantity: "80 g" },
+      { name: "flour", label: "Harina de trigo", category: "Grano", quantity: "80 g" }
+    ],
+    isVegetarian: true,
+    isVegan: false,
+    containsGluten: true
+  },
+  {
+    name: "Tiramisu in a Jar",
+    nameEs: "Tiramisú en vaso",
+    slug: "tiramisu-in-a-jar",
+    category: "Postre",
+    description: "Bizcocho empapado en café con mascarpone y cacao. Se hace en un solo vaso, sin horno.",
+    prepMinutes: 15,
+    difficulty: "facil",
+    calories: 480,
+    proteinGrams: 12,
+    carbsGrams: 52,
+    fatGrams: 26,
+    priceLevel: 2,
+    tags: ["italiano", "dulce", "sin horno", "café", "postre", "indulgente"],
+    axes: { comfort: 0.92, energy: 0.76, speed: 0.6, lightness: 0.15, richness: 0.9, spice: 0.05, sweetness: 0.9, freshness: 0.1, protein: 0.4, indulgence: 0.9, warmth: 0.45, complexity: 0.25, value: 0.6 },
+    ingredients: [
+      { name: "mascarpone", label: "Mascarpone", category: "Lácteo", quantity: "200 g" },
+      { name: "espresso", label: "Espresso", category: "Infusión", quantity: "120 ml" },
+      { name: "dark_chocolate", label: "Chocolate 70%", category: "Endulzante", quantity: "50 g" },
+      { name: "sugar", label: "Azúcar", category: "Endulzante", quantity: "50 g" },
+      { name: "flour", label: "Bizcocho savero", category: "Grano", quantity: "150 g" }
+    ],
+    isVegetarian: true,
+    isVegan: false,
+    containsGluten: true
+  },
+  {
+    name: "Chia Pudding with Berries",
+    nameEs: "Pudin de chía con frutos rojos",
+    slug: "chia-pudding-berries",
+    category: "Postre",
+    description: "Semillas de chía con leche de almendra, endurecidas en la nevera y coronadas con frutos rojos.",
+    prepMinutes: 10,
+    difficulty: "facil",
+    calories: 260,
+    proteinGrams: 8,
+    carbsGrams: 32,
+    fatGrams: 12,
+    priceLevel: 1,
+    tags: ["saludable", "sin lactosa", "fibra", "dulce", "vegetariano", "fresco"],
+    axes: { comfort: 0.5, energy: 0.7, speed: 0.95, lightness: 0.75, richness: 0.3, spice: 0, sweetness: 0.6, freshness: 0.85, protein: 0.42, indulgence: 0.25, warmth: 0.1, complexity: 0.05, value: 0.9 },
+    ingredients: [
+      { name: "chia", label: "Semillas de chía", category: "Semilla", quantity: "40 g" },
+      { name: "oat_milk", label: "Leche de avena", category: "Lácteo", quantity: "300 ml" },
+      { name: "mixed_berries", label: "Frutos rojos", category: "Fruta", quantity: "120 g" },
+      { name: "orange_blossom_honey", label: "Miel de azahar", category: "Endulzante", quantity: "1 cda" }
+    ],
+    isVegetarian: true,
+    isVegan: true,
+    containsGluten: false
+  },
+  {
+    name: "Brownie with Salted Caramel",
+    nameEs: "Brownie con caramelo salado",
+    slug: "brownie-salted-caramel",
+    category: "Postre",
+    description: "Brownie denso y húmedo con caramelo salado por encima. El postre que nunca falla.",
+    prepMinutes: 32,
+    difficulty: "facil",
+    calories: 590,
+    proteinGrams: 7,
+    carbsGrams: 64,
+    fatGrams: 34,
+    priceLevel: 1,
+    tags: ["dulce", "chocolate", "indulgente", "postre", "caramelo"],
+    axes: { comfort: 0.94, energy: 0.82, speed: 0.32, lightness: 0.05, richness: 0.96, spice: 0, sweetness: 0.98, freshness: 0.02, protein: 0.15, indulgence: 0.99, warmth: 0.85, complexity: 0.4, value: 0.8 },
+    ingredients: [
+      { name: "dark_chocolate", label: "Chocolate 70%", category: "Endulzante", quantity: "200 g" },
+      { name: "butter", label: "Mantequilla", category: "Lácteo", quantity: "120 g" },
+      { name: "sugar", label: "Azúcar moreno", category: "Endulzante", quantity: "150 g" },
+      { name: "egg", label: "Huevo", category: "Huevo", quantity: "2 unidades" },
+      { name: "flour", label: "Harina de trigo", category: "Grano", quantity: "100 g" }
+    ],
+    isVegetarian: true,
+    isVegan: false,
+    containsGluten: true
+  }
+];

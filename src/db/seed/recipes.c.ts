@@ -1,0 +1,76 @@
+import type { RecipeMap } from "./recipes.types.ts";
+
+export const RECIPES_C: RecipeMap = {
+  "churros-chocolate-sauce": {
+    servings: 4,
+    steps: [
+      "Mezcla la harina con la sal. Añade el agua hirviendo de golpe y amasa hasta que quede un bol liso.",
+      "Deja reposar la masa 30 minutos tapada, en una temperatura fresca.",
+      "Carga la manga pasticera con la masa y haz los churros sobre una sartén con abundante aceite a 175 °C.",
+      "Freír 1 minuto por lado, hasta que estén dorados y crujientes.",
+      "Espolvorea con la mezcla de azúcar y canela mientras siguen calientes.",
+      "Para la salsa, derrite el chocolate con la crema a fuego bajo y bate hasta que quede brillante.",
+    ],
+    chefTip: "La temperatura del aceite es la diferencia entre un churro y un regaño. Si chisporrotea, está demasiado caliente.",
+    sugarGrams: 52,
+    fiberGrams: 3,
+    sodiumMg: 380,
+  },
+  "molten-chocolate-lava-cake": {
+    servings: 4,
+    steps: [
+      "Derrite el chocolate y la mantequilla a baño maría. Retira y deja templar 2 minutos.",
+      "Bate los huevos con el azúcar hasta que la mezcla palidezca y duplique de volumen.",
+      "Incorpora el chocolate templado en hilo, sin dejar de batir.",
+      "Tamiza la harina y el cacao, y mézclalos con movimientos suaves.",
+      "Reparte en moldes individuales previamente enharinados y hornea 11 minutos a 200 °C.",
+      "Saca del horno cuando el centro todavía se vea líquido. Deja reposar 1 minuto y sirve de inmediato.",
+    ],
+    chefTip: "El centro sigue caliente al sacarlo. Si esperas a que se cuaje, ya no es un volcán.",
+    sugarGrams: 46,
+    fiberGrams: 4,
+    sodiumMg: 240,
+  },
+  "tiramisu-in-a-jar": {
+    servings: 2,
+    steps: [
+      "Bate el mascarpone con el azúcar hasta que quede cremoso.",
+      "Corta el bizcocho en cubos del tamaño de un bocado.",
+      "Monta en vasos individuales: bizcocho, café, bizcocho.",
+      "Termina con la crema de mascarpone.",
+      "Refrigera al menos 2 horas y espolvorea cacao justo antes de servir.",
+    ],
+    chefTip: "Ensamblado y comido el mismo día, el bizcocho todavía está crujiente y sabe mejor.",
+    sugarGrams: 38,
+    fiberGrams: 2,
+    sodiumMg: 190,
+  },
+  "chia-pudding-berries": {
+    servings: 2,
+    steps: [
+      "Mezcla la chía con la leche de avena en un frasco.",
+      "Agrega la miel y revuelve bien para que no se apelmace.",
+      "Refrigera mínimo 4 horas, removiendo una vez a la mitad del tiempo.",
+      "Sirve con los frutos rojos encima.",
+    ],
+    chefTip: "Cada hora extra de refrigeración marca la diferencia entre un postre firme y uno aguado.",
+    sugarGrams: 18,
+    fiberGrams: 13,
+    sodiumMg: 70,
+  },
+  "brownie-salted-caramel": {
+    servings: 8,
+    steps: [
+      "Derrite el chocolate y la mantequilla a baño maría y reserva.",
+      "Bate los huevos con el azúcar moreno hasta que espesen.",
+      "Incorpora el chocolate en hilo, luego la harina tamizada.",
+      "Hornea 22 minutos a 180 °C. El centro debe verse apenas húmedo al pinchar.",
+      "Deja enfriar por completo antes de cortar, o se romperán.",
+      "Cubre con caramelo salado antes de servir.",
+    ],
+    chefTip: "Espera a que enfríe 12 horas. El brownie del día siguiente es otro postre.",
+    sugarGrams: 48,
+    fiberGrams: 4,
+    sodiumMg: 260,
+  },
+};

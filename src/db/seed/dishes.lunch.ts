@@ -1,0 +1,282 @@
+import type { DishSeed } from "./types.ts";
+
+export const LUNCH_DISHES: DishSeed[] = [
+  {
+    name: "Chicken Burrito Bowl",
+    nameEs: "Bowl burrito de pollo",
+    slug: "chicken-burrito-bowl",
+    category: "Almuerzo",
+    description:
+      "Pollo dorado, arroz de cilantro, frijoles, pico de gallo, aguacate y crema agria. Se arma en un bowl.",
+    prepMinutes: 25,
+    difficulty: "facil",
+    calories: 680,
+    proteinGrams: 42,
+    carbsGrams: 78,
+    fatGrams: 22,
+    priceLevel: 2,
+    tags: ["mexicano", "alto en proteína", "meal prep", "batch", "pico de gallo"],
+    axes: { comfort: 0.78, energy: 0.85, speed: 0.68, lightness: 0.55, richness: 0.72, spice: 0.6, sweetness: 0.12, freshness: 0.75, protein: 0.92, indulgence: 0.45, warmth: 0.72, complexity: 0.35, value: 0.8 },
+    ingredients: [
+      { name: "chicken_breast", label: "Pechuga de pollo", category: "Proteína", quantity: "200 g" },
+      { name: "rice", label: "Arroz", category: "Grano", quantity: "150 g" },
+      { name: "black_bean", label: "Frijol negro", category: "Legumbre", quantity: "120 g" },
+      { name: "salsa", label: "Salsa fresca", category: "Salsa", quantity: "120 g" },
+      { name: "avocado", label: "Aguacate", category: "Fruta", quantity: "1/2 unidad" },
+      { name: "sour_cream", label: "Crema agria", category: "Lácteo", quantity: "2 cdas" }
+    ],
+    isVegetarian: false,
+    isVegan: false,
+    containsGluten: false
+  },
+  {
+    name: "Creamy Tomato Pasta",
+    nameEs: "Pasta cremosa de tomate",
+    slug: "creamy-tomato-pasta",
+    category: "Almuerzo",
+    description:
+      "Espagueti en salsa de tomate rostizado con ajo, albahaca y un golpe de crema. Comida de confort clásica.",
+    prepMinutes: 25,
+    difficulty: "facil",
+    calories: 640,
+    proteinGrams: 22,
+    carbsGrams: 92,
+    fatGrams: 22,
+    priceLevel: 1,
+    tags: ["comfort food", "pasta", "barato", "vegetariano", "clásico"],
+    axes: { comfort: 0.95, energy: 0.72, speed: 0.7, lightness: 0.4, richness: 0.86, spice: 0.08, sweetness: 0.35, freshness: 0.55, protein: 0.48, indulgence: 0.6, warmth: 0.92, complexity: 0.25, value: 0.95 },
+    ingredients: [
+      { name: "spaghetti", label: "Espagueti", category: "Grano", quantity: "200 g" },
+      { name: "canned_tomato", label: "Tomate triturado", category: "Verdura", quantity: "400 g" },
+      { name: "garlic", label: "Ajo", category: "Condimento", quantity: "3 dientes" },
+      { name: "basil", label: "Albahaca", category: "Hierba", quantity: "un puñado" },
+      { name: "heavy_cream", label: "Crema de leche", category: "Lácteo", quantity: "80 ml", optional: true }
+    ],
+    isVegetarian: true,
+    isVegan: false,
+    containsGluten: true
+  },
+  {
+    name: "Salmon Poke Bowl",
+    nameEs: "Poke bowl de salmón",
+    slug: "salmon-poke-bowl",
+    category: "Almuerzo",
+    description:
+      "Salmón fresco en cubos sobre arroz de sushi, edamame, mango, aguacate y salsa de soja.",
+    prepMinutes: 20,
+    difficulty: "facil",
+    calories: 590,
+    proteinGrams: 38,
+    carbsGrams: 62,
+    fatGrams: 20,
+    priceLevel: 3,
+    tags: ["japonés", "fresco", "alto en proteína", "saludable", "omega 3"],
+    axes: { comfort: 0.55, energy: 0.82, speed: 0.75, lightness: 0.75, richness: 0.6, spice: 0.2, sweetness: 0.25, freshness: 0.95, protein: 0.9, indulgence: 0.4, warmth: 0.3, complexity: 0.3, value: 0.35 },
+    ingredients: [
+      { name: "salmon", label: "Salmón fresco", category: "Proteína", quantity: "180 g" },
+      { name: "sushi_rice", label: "Arroz de sushi", category: "Grano", quantity: "180 g" },
+      { name: "edamame", label: "Edamame", category: "Legumbre", quantity: "80 g" },
+      { name: "mango", label: "Mango", category: "Fruta", quantity: "100 g" },
+      { name: "avocado", label: "Aguacate", category: "Fruta", quantity: "1/2 unidad" },
+      { name: "soy_sauce", label: "Salsa de soja", category: "Condimento", quantity: "2 cdas" }
+    ],
+    isVegetarian: false,
+    isVegan: false,
+    containsGluten: false
+  },
+  {
+    name: "Beef Tacos with Charred Corn Salsa",
+    nameEs: "Tacos de res con pico de gallo de elote",
+    slug: "beef-tacos-charred-corn-salsa",
+    category: "Almuerzo",
+    description:
+      "Res guisada con comino, tortillas de maíz y un pico de gallo de elote asado al carbón con lima.",
+    prepMinutes: 35,
+    difficulty: "media",
+    calories: 720,
+    proteinGrams: 40,
+    carbsGrams: 66,
+    fatGrams: 32,
+    priceLevel: 2,
+    tags: ["mexicano", "picor medio", "carne", "carb fix", "asado al carbón"],
+    axes: { comfort: 0.8, energy: 0.84, speed: 0.45, lightness: 0.5, richness: 0.88, spice: 0.7, sweetness: 0.15, freshness: 0.6, protein: 0.86, indulgence: 0.7, warmth: 0.85, complexity: 0.55, value: 0.65 },
+    ingredients: [
+      { name: "beef_steak", label: "Bistec de res", category: "Proteína", quantity: "250 g" },
+      { name: "corn_tortilla", label: "Tortilla de maíz", category: "Grano", quantity: "6 unidades" },
+      { name: "corn", label: "Elote", category: "Verdura", quantity: "1 pieza" },
+      { name: "lime", label: "Lima", category: "Fruta", quantity: "2 unidades" },
+      { name: "cumin", label: "Comino", category: "Condimento", quantity: "1 cdta" },
+      { name: "onion", label: "Cebolla", category: "Verdura", quantity: "1 unidad" }
+    ],
+    isVegetarian: false,
+    isVegan: false,
+    containsGluten: false
+  },
+  {
+    name: "Rainbow Quinoa Salad",
+    nameEs: "Ensalada arcoíris de quinoa",
+    slug: "rainbow-quinoa-salad",
+    category: "Almuerzo",
+    description:
+      "Quinoa, garbanzos, pepino, tomate, feta y menta con vinagreta de limón. Fría, se prepara el domingo.",
+    prepMinutes: 15,
+    difficulty: "facil",
+    calories: 470,
+    proteinGrams: 20,
+    carbsGrams: 58,
+    fatGrams: 17,
+    priceLevel: 1,
+    tags: ["vegetariano", "meal prep", "fresco", "fibra", "verde"],
+    axes: { comfort: 0.6, energy: 0.7, speed: 0.9, lightness: 0.92, richness: 0.38, spice: 0.05, sweetness: 0.15, freshness: 0.96, protein: 0.66, indulgence: 0.2, warmth: 0.2, complexity: 0.15, value: 0.92 },
+    ingredients: [
+      { name: "quinoa", label: "Quinoa", category: "Grano", quantity: "150 g" },
+      { name: "chickpea", label: "Garbanzos", category: "Legumbre", quantity: "150 g" },
+      { name: "cucumber", label: "Pepino", category: "Verdura", quantity: "1 unidad" },
+      { name: "tomato", label: "Tomate", category: "Verdura", quantity: "2 unidades" },
+      { name: "feta", label: "Queso feta", category: "Lácteo", quantity: "60 g" },
+      { name: "mint", label: "Menta", category: "Hierba", quantity: "un puñado" }
+    ],
+    isVegetarian: true,
+    isVegan: false,
+    containsGluten: false
+  },
+  {
+    name: "Mushroom Risotto",
+    nameEs: "Risotto de hongos",
+    slug: "mushroom-risotto",
+    category: "Almuerzo",
+    description:
+      "Arroz arborio cocido en caldo con setas, parmesano y mantequilla. Riqueza máxima en cada cucharada.",
+    prepMinutes: 40,
+    difficulty: "avanzada",
+    calories: 610,
+    proteinGrams: 18,
+    carbsGrams: 78,
+    fatGrams: 24,
+    priceLevel: 2,
+    tags: ["comfort food", "vegetariano", "cremoso", "italiano", "hongos"],
+    axes: { comfort: 0.96, energy: 0.62, speed: 0.28, lightness: 0.25, richness: 0.95, spice: 0.05, sweetness: 0.15, freshness: 0.35, protein: 0.42, indulgence: 0.72, warmth: 0.95, complexity: 0.8, value: 0.55 },
+    ingredients: [
+      { name: "arborio_rice", label: "Arroz arborio", category: "Grano", quantity: "300 g" },
+      { name: "mushroom", label: "Setas", category: "Verdura", quantity: "300 g" },
+      { name: "parmesan", label: "Parmesano", category: "Lácteo", quantity: "80 g" },
+      { name: "butter", label: "Mantequilla", category: "Lácteo", quantity: "40 g" },
+      { name: "vegetable_stock", label: "Caldo de verduras", category: "Caldo", quantity: "1 L" },
+      { name: "white_wine", label: "Vino blanco", category: "Bebida", quantity: "100 ml", optional: true }
+    ],
+    isVegetarian: true,
+    isVegan: false,
+    containsGluten: false
+  },
+  {
+    name: "Chicken Noodle Stir Fry",
+    nameEs: "Salteado de fideos con pollo",
+    slug: "chicken-noodle-stir-fry",
+    category: "Almuerzo",
+    description:
+      "Fideos de trigo salteados con pollo, verduras de colores y salsa de soja y jengibre en un solo wok.",
+    prepMinutes: 20,
+    difficulty: "facil",
+    calories: 630,
+    proteinGrams: 36,
+    carbsGrams: 72,
+    fatGrams: 20,
+    priceLevel: 1,
+    tags: ["asiático", "rápido", "wok", "verduras", "meal prep"],
+    axes: { comfort: 0.7, energy: 0.82, speed: 0.85, lightness: 0.62, richness: 0.62, spice: 0.45, sweetness: 0.2, freshness: 0.7, protein: 0.8, indulgence: 0.35, warmth: 0.8, complexity: 0.3, value: 0.9 },
+    ingredients: [
+      { name: "chicken_breast", label: "Pechuga de pollo", category: "Proteína", quantity: "200 g" },
+      { name: "noodles", label: "Fideos de trigo", category: "Grano", quantity: "180 g" },
+      { name: "bell_pepper", label: "Pimiento", category: "Verdura", quantity: "1 unidad" },
+      { name: "carrot", label: "Zanahoria", category: "Verdura", quantity: "1 unidad" },
+      { name: "soy_sauce", label: "Salsa de soja", category: "Condimento", quantity: "3 cdas" },
+      { name: "ginger", label: "Jengibre", category: "Condimento", quantity: "1 cda" }
+    ],
+    isVegetarian: false,
+    isVegan: false,
+    containsGluten: true
+  },
+  {
+    name: "Lentil Bolognese",
+    nameEs: "Boloñesa de lentejas",
+    slug: "lentil-bolognese",
+    category: "Almuerzo",
+    description:
+      "Lentejas rojas con tomate, zanahoria y romero en salsa densa. Vegetariano, barato y llena muchísimo.",
+    prepMinutes: 35,
+    difficulty: "facil",
+    calories: 540,
+    proteinGrams: 26,
+    carbsGrams: 68,
+    fatGrams: 16,
+    priceLevel: 1,
+    tags: ["vegetariano", "barato", "fibra", "batch", "saludable", "alto en proteína"],
+    axes: { comfort: 0.86, energy: 0.74, speed: 0.55, lightness: 0.6, richness: 0.68, spice: 0.15, sweetness: 0.2, freshness: 0.45, protein: 0.82, indulgence: 0.25, warmth: 0.9, complexity: 0.25, value: 1 },
+    ingredients: [
+      { name: "red_lentil", label: "Lentejas rojas", category: "Legumbre", quantity: "250 g" },
+      { name: "canned_tomato", label: "Tomate triturado", category: "Verdura", quantity: "400 g" },
+      { name: "carrot", label: "Zanahoria", category: "Verdura", quantity: "2 unidades" },
+      { name: "onion", label: "Cebolla", category: "Verdura", quantity: "1 unidad" },
+      { name: "garlic", label: "Ajo", category: "Condimento", quantity: "3 dientes" },
+      { name: "vegetable_stock", label: "Caldo de verduras", category: "Caldo", quantity: "600 ml" }
+    ],
+    isVegetarian: true,
+    isVegan: true,
+    containsGluten: false
+  },
+  {
+    name: "Ginger Garlic Rice",
+    nameEs: "Arroz con ajo y jengibre",
+    slug: "ginger-garlic-rice",
+    category: "Almuerzo",
+    description:
+      "Arroz salteado con ajo, jengibre, cebolleta y huevo. Sabe a restaurante y cuesta menos que el de delivery.",
+    prepMinutes: 15,
+    difficulty: "facil",
+    calories: 520,
+    proteinGrams: 16,
+    carbsGrams: 82,
+    fatGrams: 13,
+    priceLevel: 1,
+    tags: ["asiático", "rápido", "barato", "vegetariano", "batch"],
+    axes: { comfort: 0.82, energy: 0.78, speed: 0.92, lightness: 0.6, richness: 0.62, spice: 0.4, sweetness: 0.18, freshness: 0.5, protein: 0.42, indulgence: 0.3, warmth: 0.85, complexity: 0.15, value: 1 },
+    ingredients: [
+      { name: "rice", label: "Arroz", category: "Grano", quantity: "200 g" },
+      { name: "garlic", label: "Ajo", category: "Condimento", quantity: "4 dientes" },
+      { name: "ginger", label: "Jengibre", category: "Condimento", quantity: "2 cdas" },
+      { name: "scallion", label: "Cebolleta", category: "Verdura", quantity: "3 unidades" },
+      { name: "egg", label: "Huevo", category: "Huevo", quantity: "2 unidades" }
+    ],
+    isVegetarian: true,
+    isVegan: false,
+    containsGluten: false
+  },
+  {
+    name: "Chicken Tortilla Soup",
+    nameEs: "Sopa de pollo con tortilla",
+    slug: "chicken-tortilla-soup",
+    category: "Almuerzo",
+    description:
+      "Caldo de pollo claro con jalapeño, tomate, maíz, frijol y tiras de tortilla crujientes.",
+    prepMinutes: 35,
+    difficulty: "facil",
+    calories: 450,
+    proteinGrams: 32,
+    carbsGrams: 42,
+    fatGrams: 16,
+    priceLevel: 1,
+    tags: ["mexicano", "sopa", "picante", "comfort food", "alto en proteína"],
+    axes: { comfort: 0.92, energy: 0.78, speed: 0.5, lightness: 0.65, richness: 0.66, spice: 0.72, sweetness: 0.18, freshness: 0.55, protein: 0.84, indulgence: 0.4, warmth: 0.95, complexity: 0.3, value: 0.96 },
+    ingredients: [
+      { name: "chicken_breast", label: "Pechuga de pollo", category: "Proteína", quantity: "250 g" },
+      { name: "vegetable_stock", label: "Caldo de verduras", category: "Caldo", quantity: "1 L" },
+      { name: "tomato", label: "Tomate", category: "Verdura", quantity: "2 unidades" },
+      { name: "corn", label: "Maíz dulce", category: "Verdura", quantity: "100 g" },
+      { name: "black_bean", label: "Frijol negro", category: "Legumbre", quantity: "100 g" },
+      { name: "corn_tortilla", label: "Tortilla de maíz", category: "Grano", quantity: "2 unidades" }
+    ],
+    isVegetarian: false,
+    isVegan: false,
+    containsGluten: false
+  }
+];
