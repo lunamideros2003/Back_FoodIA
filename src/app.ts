@@ -11,11 +11,22 @@ export function createApp(): Express {
   app.use(
     cors({
       origin(origin, callback) {
-        // Allow same-origin/tooling requests (no Origin header) and configured frontends.
-        if (!origin || env.corsOrigins.includes(origin)) {
+        // No Origin header means a tool, curl or a health check: always fine.
+        if (!origin) {
           callback(null, true);
           return;
         }
+        if (env.corsOrigins.includes(origin)) {
+          callback(null, true);
+          return;
+        }
+        // A rejected origin is the single most common "it works on my machine"
+        // problem once the frontend is deployed, so name the fix in the log.
+        console.warn(
+          `[cors] Bloqueado: ${origin}\n` +
+            `        Agrega esa URL a CORS_ORIGIN en las variables de entorno del servidor.\n` +
+            `        Orígenes permitidos ahora: ${env.corsOrigins.join(", ") || "(ninguno)"}`,
+        );
         callback(new Error(`Origen bloqueado por CORS: ${origin}`));
       },
       credentials: true,

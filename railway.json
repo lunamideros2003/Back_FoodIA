@@ -1,0 +1,21 @@
+# FoodMood IA · backend en Railway
+#
+# railway.json hace que Railway detects el Dockerfile y use su propio
+# volumen persistente en /data, que es donde vive la base de datos.
+# Los secretos (PORT, DATABASE_FILE, CORS_ORIGIN, ...) se poner en el
+# panel web, no en este archivo.
+
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "DOCKERFILE",
+    "dockerfilePath": "Dockerfile"
+  },
+  "deploy": {
+    "startCommand": "npm start",
+    "healthcheckPath": "/api/health",
+    "healthcheckTimeout": 100,
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 3
+  }
+}

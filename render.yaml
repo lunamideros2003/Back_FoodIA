@@ -1,0 +1,40 @@
+# FoodMood IA · backend en Render
+#
+# Este archivo es un "Blueprint": Render lo lee solo y arma el servicio
+# con la configuración correcta. Los secretos se ponen en el panel web
+# (Environment), nunca aquí.
+#
+# OJO IMPORTANTE sobre el disco:
+# El plan "free" de Render NO tiene disco permanente. Cada que Render
+# recicla el servicio o redespliegas, la base de datos se borra. La
+# aplicación sigue funcionando (se vuelve a llenar sola con los 40
+# platos), pero los perfiles y el historial que crean los usuarios se
+# pierden.
+#
+# Si necesitas que los datos sobrevivan, cambia `plan: starter` y
+# descomenta el bloque `disk` de abajo.
+
+services:
+  - type: web
+    name: foodmood-backend
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_FILE
+        value: /data/foodmood.db
+      - key: PORT
+        value: 4000
+      # Cambia esto por la URL de tu frontend en Vercel.
+      - key: CORS_ORIGIN
+        sync: false
+
+    # Con plan: starter, descomenta este bloque para que los datos persistan.
+    # disk:
+    #   name: foodmood-data
+    #   mountPath: /data
+    #   sizeGB: 1

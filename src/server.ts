@@ -1,7 +1,8 @@
 import { createApp } from "./app.ts";
-import { env } from "./config/env.ts";
+import { env, isProduction } from "./config/env.ts";
 import { closeDb } from "./db/connection.ts";
 import { modelStore } from "./services/modelStore.ts";
+import { WARNINGS } from "./deployChecks.ts";
 
 const app = createApp();
 
@@ -17,6 +18,18 @@ const server = app.listen(env.port, () => {
   console.log(
     `  → Capa de IA: ${env.ai.provider === "openai" ? `LLM (${env.ai.model})` : "modelo local (offline)"}`,
   );
+
+  // On a hosted platform the silent killers are a missing CORS entry and a
+  // database path on an ephemeral filesystem. Both are cheap to notice here
+  // and impossible to notice later from the browser.
+  const productionWarnings = WARNINGS({ isProduction, corsOrigins: env.corsOrigins });
+  if (productionWarnings.length > 0) {
+    console.log("");
+    for (const warning of productionWarnings) {
+      console.log(`  ! ${warning}`);
+    }
+  }
+
   console.log("");
 });
 
