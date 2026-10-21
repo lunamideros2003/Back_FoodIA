@@ -291,6 +291,10 @@ export interface ScoreBreakdown {
   novelty: number;
   popularity: number;
   healthFit: number;
+  /** How well the dish answers "what do I feel like eating". */
+  cravingFit: number;
+  /** How well the dish fits the time the person said they have. */
+  timeFit: number;
   total: number;
   topReasons: { axis: AxisName; contribution: number; weight: number }[];
   healthNotes: string[];
