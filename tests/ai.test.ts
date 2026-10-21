@@ -66,7 +66,7 @@ function makeDish(id: number, nameEs: string, axes: Partial<DishAxes> = {}, extr
 function makeBreakdown(total: number): ScoreBreakdown {
   return {
     moodAffinity: 0.5, tasteMatch: 0.5, collaborative: 0.5, preferenceFit: 1,
-    novelty: 0.5, popularity: 0.5, healthFit: 1, total,
+    novelty: 0.5, popularity: 0.5, healthFit: 1, cravingFit: 0.5, timeFit: 0.5, total,
     topReasons: [], healthNotes: [],
   };
 }

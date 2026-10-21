@@ -13,10 +13,12 @@ import type { HealthCondition } from "../domain/types.ts";
 import { clamp, round } from "./vector.ts";
 import { cosine } from "./vector.ts";
 import { CollaborativeFilter } from "./collaborative.ts";
+import { allergenConflicts } from "./allergens.ts";
 import { conditionsOf, DAILY_SUGAR_REFERENCE_G, evaluateDish } from "./health.ts";
 import { extractIntent, type ExtractedIntent } from "./intent.ts";
 import { MoodModel, type TrainingSample } from "./moodModel.ts";
 import { TasteProfile } from "./tasteProfile.ts";
+import { cravingScore, mapMoodOption, timeBudgetCeiling, timeFitScore } from "./taxonomy.ts";
 
 export const MODEL_VERSION = "foodmood-1.4.0";
 export const STRATEGY = "hybrid-mood-taste-itemknn-mmr";
@@ -30,6 +32,10 @@ interface Weights {
   popularity: number;
   /** Only used by the light-mode weights. */
   light?: number;
+  /** Only used by the questionnaire weights. */
+  craving?: number;
+  /** Only used by the questionnaire weights. */
+  time?: number;
 }
 
 const COLD_START_WEIGHTS: Weights = {
@@ -48,6 +54,22 @@ const TRAINED_WEIGHTS: Weights = {
   preference: 0.14,
   novelty: 0.05,
   popularity: 0.05,
+};
+
+/**
+ * The wizard tells three things at once: how the person feels, how much time
+ * they have and what they feel like eating. Those answers are explicit, so
+ * they get their own channels instead of being mixed into the mood score.
+ */
+const QUESTIONNAIRE_WEIGHTS: Weights = {
+  mood: 0.34,
+  taste: 0.12,
+  collaborative: 0.08,
+  preference: 0.14,
+  novelty: 0.08,
+  popularity: 0.04,
+  craving: 0.14,
+  time: 0.06,
 };
 
 export interface ScoredDish {
@@ -151,17 +173,31 @@ function hardFilters(
   intent: ExtractedIntent,
   conditions: HealthCondition[],
   dailyCalorieGoal: number,
+  effectiveMaxPrepMinutes: number | null,
 ): string | null {
   const preferences = user?.preferences;
   const diet = request.diet ?? intent.diet ?? preferences?.diet ?? "omnivore";
   if (!passesDiet(dish, diet)) return "No coincide con tu dieta";
 
-  const allergies = (preferences?.allergies ?? []).map(normalizeToken);
-  const disliked = (preferences?.dislikedIngredients ?? []).map(normalizeToken);
+  const allergies = [
+    ...(preferences?.allergies ?? []),
+    ...(request.allergies ?? []),
+  ].map(normalizeToken);
+  const disliked = [
+    ...(preferences?.dislikedIngredients ?? []),
+    ...(request.excludedIngredients ?? []),
+  ].map(normalizeToken);
   const labels = dish.ingredients.map((item) => normalizeToken(item.label));
 
   if (allergies.some((item) => labels.includes(item))) return "Contiene un ingrediente que te causa alergia";
   if (disliked.some((item) => labels.includes(item))) return "No te gusta ese ingrediente";
+
+  // A declared allergy is a hard restriction, not a preference: the recipe is
+  // removed from the list even when the model would have loved it.
+  const conflicts = allergenConflicts(dish, request.allergies ?? []);
+  if (conflicts.length > 0) {
+    return `Tiene ${conflicts.join(", ")} y lo tienes entre tus alergias`;
+  }
 
   // Health conditions outrank the mood: a wrong suggestion costs more than a
   // boring one, so a real conflict is an exclusion, never a penalty.
@@ -190,15 +226,28 @@ function hardFilters(
 
   if ((request.excludeDishIds ?? []).includes(dish.id)) return "Ya lo viste";
 
-  // The time limit typed for THIS search is a hard constraint. The one stored
-  // in the profile stays a soft penalty, because it is a standing habit rather
-  // than an instruction for the current meal.
-  if (request.maxPrepMinutes !== undefined && dish.prepMinutes > request.maxPrepMinutes) {
+  // The time limit for THIS search is a hard constraint. The one stored in the
+  // profile stays a soft penalty, because it is a standing habit rather than
+  // an instruction for the current meal.
+  if (effectiveMaxPrepMinutes !== null && dish.prepMinutes > effectiveMaxPrepMinutes) {
     return "Se pasó del tiempo que pediste";
+  }
+
+  if (
+    request.difficulty &&
+    DIFFICULTY_RANK[dish.difficulty] > DIFFICULTY_RANK[request.difficulty]
+  ) {
+    return "Es más difícil de lo que pediste";
   }
 
   return null;
 }
+
+const DIFFICULTY_RANK: Record<Dish["difficulty"], number> = {
+  facil: 1,
+  media: 2,
+  avanzada: 3,
+};
 
 const STRONG_AXIS_THRESHOLD = 0.5;
 
@@ -356,13 +405,19 @@ export function rankDishes(
 
   const historyStrength = userInteractions.length;
   const baseWeights = historyStrength >= 5 ? TRAINED_WEIGHTS : COLD_START_WEIGHTS;
+  // The wizard carries explicit answers, so it gets its own weight set.
+  const usesQuestionnaire = Boolean(
+    request.moodOption || request.timeBudget || request.craving,
+  );
   // An explicit note from the user is a stronger signal than their mood pick,
   // so the text channel takes over the ranking.
   const weights: Weights = lightMode
     ? LIGHT_WEIGHTS
     : request.freeText?.trim()
       ? NOTE_DRIVEN_WEIGHTS
-      : baseWeights;
+      : usesQuestionnaire
+        ? QUESTIONNAIRE_WEIGHTS
+        : baseWeights;
 
   const tasteVector = tasteProfile.combineWithQuery(
     tasteProfile.buildUserVector(TasteProfile.toSignals(userInteractions)),
@@ -382,6 +437,10 @@ export function rankDishes(
     affinityByDish.set(dish.id, moodModel.affinity(mood.key as MoodKey, dish.axes));
   }
 
+  // The time the person declared wins over the ceiling stored in the profile.
+  const effectiveMaxPrepMinutes =
+    request.maxPrepMinutes ?? timeBudgetCeiling(request.timeBudget);
+
   // A written note is the most explicit signal of all, so the mood-override
   // rebalance must not touch it.
   const noteDriven = Boolean(request.freeText?.trim());
@@ -396,10 +455,30 @@ export function rankDishes(
         excluded: new Set([...excluded, ...userInteractions.map((item) => item.dishId)]),
       });
 
+  // The wizard channels are scaled by how much the selected mood option cares
+  // about them: "aburrido" leans on novelty, "con el ánimo bajo" on comfort.
+  const mappedMood = request.moodOption ? mapMoodOption(request.moodOption) : null;
+  const cravingChannelWeight =
+    (effectiveWeights.craving ?? 0) * (mappedMood ? mappedMood.cravingWeight : 1);
+  const noveltyChannelWeight =
+    (effectiveWeights.novelty ?? 0) * (mappedMood ? mappedMood.noveltyWeight : 1);
+
   const scored: ScoredDish[] = [];
 
   for (const dish of dishes) {
-    if (hardFilters(dish, request, user, intent, conditions, dailyCalorieGoal) !== null) continue;
+    if (
+      hardFilters(
+        dish,
+        request,
+        user,
+        intent,
+        conditions,
+        dailyCalorieGoal,
+        effectiveMaxPrepMinutes,
+      ) !== null
+    ) {
+      continue;
+    }
     if (options.excludeIds?.includes(dish.id)) continue;
 
     const affinity = affinityByDish.get(dish.id);
@@ -459,6 +538,8 @@ export function rankDishes(
       novelty: round(novelty, 4),
       popularity: round(popularity, 4),
       healthFit: round(lightMode ? health.score * 0.6 + light * 0.4 : health.score, 4),
+      cravingFit: round(cravingScore(dish, request.craving), 4),
+      timeFit: round(timeFitScore(dish, effectiveMaxPrepMinutes), 4),
       total: 0,
       topReasons: lightMode
         ? ([
@@ -486,8 +567,10 @@ export function rankDishes(
       breakdown.tasteMatch * effectiveWeights.taste +
       breakdown.collaborative * effectiveWeights.collaborative +
       breakdown.preferenceFit * effectiveWeights.preference +
-      breakdown.novelty * effectiveWeights.novelty +
+      breakdown.novelty * noveltyChannelWeight +
       breakdown.popularity * effectiveWeights.popularity +
+      breakdown.cravingFit * cravingChannelWeight +
+      breakdown.timeFit * (effectiveWeights.time ?? 0) +
       (lightMode ? breakdown.healthFit * (effectiveWeights.light ?? 0) : 0) +
       (!lightMode && conditions.length > 0 ? breakdown.healthFit * 0.25 : 0);
 
