@@ -249,6 +249,37 @@ const DIFFICULTY_RANK: Record<Dish["difficulty"], number> = {
   avanzada: 3,
 };
 
+/** How much having the ingredients at home is worth in the final score. */
+const INGREDIENT_BONUS_WEIGHT = 0.08;
+
+/**
+ * How much of the recipe the person already has at home. It is a soft signal
+ * on purpose: having the ingredients is a good reason to suggest a dish, but
+ * it is never a reason to hide the other options.
+ */
+export function availableIngredientBonus(
+  dish: Dish,
+  available: string[] | undefined,
+): number {
+  if (!available || available.length === 0) return 0;
+
+  const cleaned = available.map(normalizeToken).filter(Boolean);
+  if (cleaned.length === 0) return 0;
+
+  const labels = dish.ingredients.map((item) => normalizeToken(item.label));
+  const required = dish.ingredients.filter((item) => !item.optional);
+  const pool = required.length > 0 ? required : dish.ingredients;
+
+  const hits = pool.filter((item) =>
+    cleaned.some((entry) => {
+      const label = normalizeToken(item.label);
+      return label.includes(entry) || entry.includes(label);
+    }),
+  ).length;
+
+  return clamp(hits / Math.max(1, pool.length));
+}
+
 const STRONG_AXIS_THRESHOLD = 0.5;
 
 /** A detail that varies per dish so the explanation never reads like a template. */
@@ -521,6 +552,8 @@ export function rankDishes(
 
     const health = evaluateDish(dish, conditions, dailyCalorieGoal);
 
+    const ingredientBonus = availableIngredientBonus(dish, request.availableIngredients);
+
     // Lightness is not an axis in the mood space: it is the calorie and sugar
     // load of the plate, inverted and capped against a quarter of the daily
     // goal (what a light meal should be). This is what the "rest of the day"
@@ -577,6 +610,7 @@ export function rankDishes(
       breakdown.popularity * effectiveWeights.popularity +
       breakdown.cravingFit * cravingChannelWeight +
       breakdown.timeFit * (effectiveWeights.time ?? 0) +
+      ingredientBonus * INGREDIENT_BONUS_WEIGHT +
       (lightMode ? breakdown.healthFit * (effectiveWeights.light ?? 0) : 0) +
       (!lightMode && conditions.length > 0 ? breakdown.healthFit * 0.25 : 0);
 
