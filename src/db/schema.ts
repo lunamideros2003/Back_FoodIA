@@ -105,6 +105,8 @@ export function applySchema(db: DatabaseSync): void {
 
   applyAdditiveMigrations(db);
   createFavouritesTable(db);
+  createRecipeEntriesTable(db);
+  createSavedPreferencesTable(db);
 }
 
 /**
@@ -123,6 +125,50 @@ export function createFavouritesTable(db: DatabaseSync): void {
 
     CREATE INDEX IF NOT EXISTS idx_favorites_user ON favorites(user_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_favorites_dish ON favorites(dish_id);
+  `);
+}
+
+/**
+ * The kitchen trail: which recipes the person opened, which ones they actually
+ * cooked, and the optional notes they wrote about them. Every column beyond
+ * the status is voluntary.
+ */
+export function createRecipeEntriesTable(db: DatabaseSync): void {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS recipe_entries (
+      id            INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      dish_id       INTEGER NOT NULL REFERENCES dishes(id) ON DELETE CASCADE,
+      status        TEXT    NOT NULL DEFAULT 'viewed',
+      rating        INTEGER,
+      note          TEXT,
+      feeling_note  TEXT,
+      created_at    TEXT    NOT NULL DEFAULT (datetime('now')),
+      updated_at    TEXT    NOT NULL DEFAULT (datetime('now')),
+      UNIQUE (user_id, dish_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_entries_user   ON recipe_entries(user_id, updated_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_entries_status ON recipe_entries(user_id, status);
+  `);
+}
+
+/**
+ * Preferences the user explicitly agreed to keep. They live in their own
+ * table so the temporary answers of a single session are never mixed with
+ * the long-term profile.
+ */
+export function createSavedPreferencesTable(db: DatabaseSync): void {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS saved_preferences (
+      user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      key        TEXT    NOT NULL,
+      value      TEXT    NOT NULL,
+      created_at TEXT    NOT NULL DEFAULT (datetime('now')),
+      PRIMARY KEY (user_id, key)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_saved_prefs_user ON saved_preferences(user_id);
   `);
 }
 
