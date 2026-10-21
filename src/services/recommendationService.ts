@@ -2,6 +2,7 @@ import { getDb } from "../db/connection.ts";
 import { diversify, MODEL_VERSION, rankDishes, STRATEGY, buildReason, type RecommenderContext } from "../ai/recommender.ts";
 import { buildNarrative } from "../ai/narrative.ts";
 import { conditionsOf, HEALTH_QUESTION, shouldAskAboutHealth } from "../ai/health.ts";
+import { buildEmpathyNotice, buildSupportSuggestion } from "../ai/empathy.ts";
 import { listDishes, listInteractions, findMood, findUserById } from "./repositories.ts";
 import { modelStore } from "./modelStore.ts";
 import { env } from "../config/env.ts";
@@ -12,6 +13,7 @@ import type {
   RecommendationRequest,
   RecommendationResponse,
   RecommendedDish,
+  StructuredRecommendation,
 } from "../domain/types.ts";
 
 const DEFAULT_LIMIT = 6;
@@ -73,6 +75,8 @@ export async function recommend(
   const buildItemExplanation = (item: (typeof top)[number]): string =>
     buildReason(item.dish, item.breakdown, mood, request.freeText);
 
+  const empathy = buildEmpathyNotice(mood.label, request.freeText);
+
   const narrative = await buildNarrative({
     mood,
     items: top.map((item) => ({
@@ -113,10 +117,50 @@ export async function recommend(
     })),
     needsHealthInfo,
     healthQuestion: needsHealthInfo ? HEALTH_QUESTION : null,
+    summary: empathy.text,
+    supportHint: buildSupportSuggestion(request.freeText),
+    structured: items.map((item) => buildStructured(item, buildItemExplanation(item), request)),
   };
 
   persistSession(user?.id ?? null, mood.key, response);
   return response;
+}
+
+/**
+ * The structured form of a recommendation. The reasons are written from the
+ * real recipe data, never from a model answer, so the frontend can show the
+ * "why" without having to trust a generated sentence.
+ */
+function buildStructured(
+  item: RecommendedDish,
+  explanation: string,
+  request: RecommendationRequest,
+): StructuredRecommendation {
+  const satisfied: string[] = [];
+
+  if (request.craving && request.craving !== "surprise") {
+    satisfied.push(`Antojo: ${request.craving}`);
+  }
+  if (request.moodOption) {
+    satisfied.push(`Ánimo: ${request.moodOption}`);
+  }
+  if (request.timeBudget) {
+    satisfied.push(`Tiempo: ${request.timeBudget}`);
+  }
+  if (request.diet && request.diet !== "omnivore") {
+    satisfied.push(`Dieta: ${request.diet}`);
+  }
+  if (request.difficulty) {
+    satisfied.push(`Dificultad: ${request.difficulty}`);
+  }
+
+  return {
+    recipeId: item.dish.id,
+    reason: explanation,
+    timeMatch: item.breakdown.timeFit > 0.5,
+    preferencesSatisfied: satisfied,
+    warnings: item.breakdown.healthNotes,
+  };
 }
 
 function persistSession(
