@@ -28,6 +28,8 @@ export const env = {
     baseUrl: process.env.AI_BASE_URL ?? "https://api.openai.com/v1",
     apiKey: process.env.AI_API_KEY ?? "",
     model: process.env.AI_MODEL ?? "gpt-4o-mini",
+    /** How long the cooking assistant waits before falling back. */
+    assistantTimeoutMs: toInt(process.env.AI_ASSISTANT_TIMEOUT_MS, 9000),
   },
   recentInteractionLimit: toInt(process.env.RECENT_INTERACTION_LIMIT, 40),
 };
