@@ -64,6 +64,8 @@ export function applySchema(db: DatabaseSync): void {
       sugar_g       REAL    NOT NULL DEFAULT 0,
       fiber_g       REAL    NOT NULL DEFAULT 0,
       sodium_mg     REAL    NOT NULL DEFAULT 0,
+      allergens     TEXT    NOT NULL DEFAULT '[]',
+      verified_substitutions TEXT NOT NULL DEFAULT '[]',
       created_at    TEXT    NOT NULL DEFAULT (datetime('now'))
     );
 
@@ -186,6 +188,8 @@ function applyAdditiveMigrations(db: DatabaseSync): void {
     ["sugar_g", "REAL NOT NULL DEFAULT 0"],
     ["fiber_g", "REAL NOT NULL DEFAULT 0"],
     ["sodium_mg", "REAL NOT NULL DEFAULT 0"],
+    ["allergens", "TEXT NOT NULL DEFAULT '[]'"],
+    ["verified_substitutions", "TEXT NOT NULL DEFAULT '[]'"],
   ] as const;
 
   const preferenceColumns = [
