@@ -46,8 +46,8 @@ historyRouter.get("/users/:id/history", (req, res) => {
   requireUser(id);
 
   const status = req.query.status;
-  const filter =
-    status === "viewed" || status === "prepared" ? { status } : undefined;
+  const filter: { status?: "viewed" | "prepared" } =
+    status === "viewed" || status === "prepared" ? { status } : {};
 
   res.json({
     items: listRecipeEntries(id, filter ?? {}),

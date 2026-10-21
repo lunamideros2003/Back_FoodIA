@@ -42,6 +42,18 @@ const CONDITIONS = [
 ] as const;
 
 const conditionList = z.array(z.enum(CONDITIONS)).max(CONDITIONS.length).optional();
+const ingredientList = z.array(z.string().max(40)).max(20).optional();
+
+const MOOD_OPTION_KEYS = [
+  "energized",
+  "low",
+  "stressed_tired",
+  "bored",
+  "calm",
+  "celebrating",
+] as const;
+const TIME_BUDGET_KEYS = ["under_10", "between_10_30", "plenty"] as const;
+const CRAVING_KEYS = ["sweet", "savory", "light", "comfort", "surprise"] as const;
 
 const recommendationSchema = z.object({
   moodKey: z.enum(MOOD_KEYS),
@@ -52,6 +64,14 @@ const recommendationSchema = z.object({
   maxPrepMinutes: z.number().int().min(1).max(240).optional(),
   diet: z.enum(DIETS).optional(),
   conditions: conditionList,
+  /** The plain-language answers of the wizard, when the request comes from it. */
+  moodOption: z.enum(MOOD_OPTION_KEYS).optional(),
+  timeBudget: z.enum(TIME_BUDGET_KEYS).optional(),
+  craving: z.enum(CRAVING_KEYS).optional(),
+  availableIngredients: ingredientList,
+  excludedIngredients: ingredientList,
+  allergies: ingredientList,
+  difficulty: z.enum(["facil", "media", "avanzada"]).optional(),
 });
 
 const interactionSchema = z.object({
@@ -348,6 +368,13 @@ router.post(
       maxPrepMinutes: body.maxPrepMinutes,
       diet: body.diet,
       conditions: body.conditions,
+      moodOption: body.moodOption,
+      timeBudget: body.timeBudget,
+      craving: body.craving,
+      availableIngredients: body.availableIngredients,
+      excludedIngredients: body.excludedIngredients,
+      allergies: body.allergies,
+      difficulty: body.difficulty,
     });
 
     if (body.userId && response.items[0]) {
