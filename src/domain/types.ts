@@ -6,6 +6,18 @@ export type MoodKey =
   | "no_energy"
   | "in_a_hurry";
 
+export type {
+  CravingKey,
+  MoodOptionKey,
+  TimeBudgetKey,
+} from "./questionnaire.ts";
+
+import type {
+  CravingKey,
+  MoodOptionKey,
+  TimeBudgetKey,
+} from "./questionnaire.ts";
+
 /** Health conditions the recommender must account for when ranking dishes. */
 export type HealthCondition =
   | "diabetes"
@@ -255,6 +267,20 @@ export interface RecommendationRequest {
   diet?: UserPreferences["diet"];
   /** Per-request health conditions, for users without a saved profile yet. */
   conditions?: HealthCondition[];
+  /** The plain-language mood the person picked in the wizard. */
+  moodOption?: MoodOptionKey;
+  /** How much time the person said they have. */
+  timeBudget?: TimeBudgetKey;
+  /** What the person feels like eating. */
+  craving?: CravingKey;
+  /** Ingredients the person already has at home. */
+  availableIngredients?: string[];
+  /** Ingredients the person does not want to see. */
+  excludedIngredients?: string[];
+  /** Hard restriction, treated like an allergy and never as a preference. */
+  allergies?: string[];
+  /** Difficulty ceiling for this search only. */
+  difficulty?: "facil" | "media" | "avanzada";
 }
 
 export interface ScoreBreakdown {
