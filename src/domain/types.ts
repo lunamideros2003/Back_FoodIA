@@ -309,6 +309,22 @@ export interface RecommendedDish {
   modelVersion: string;
 }
 
+/**
+ * The structured form of a recommendation. The backend validates it, so the
+ * frontend can render the "why" of every recipe without parsing prose.
+ */
+export interface StructuredRecommendation {
+  recipeId: number;
+  /** The short reason, written from the real recipe data. */
+  reason: string;
+  /** True when the recipe fits the time the person said they had. */
+  timeMatch: boolean;
+  /** The answers of the wizard this recipe satisfies. */
+  preferencesSatisfied: string[];
+  /** Anything the user should know before cooking it. */
+  warnings: string[];
+}
+
 export interface RecommendationResponse {
   mood: Mood;
   generatedAt: string;
@@ -323,6 +339,15 @@ export interface RecommendationResponse {
    */
   needsHealthInfo: boolean;
   healthQuestion: string | null;
+  /** A warm, short paragraph shown above the results. */
+  summary: string;
+  /**
+   * Set when the words the user typed suggest a situation that is bigger than
+   * a recipe. It points at human support without diagnosing anything.
+   */
+  supportHint: string | null;
+  /** The same results in a shape the backend has already validated. */
+  structured: StructuredRecommendation[];
 }
 
 /* ------------------------------------------------------------------ *
