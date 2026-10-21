@@ -104,6 +104,26 @@ export function applySchema(db: DatabaseSync): void {
   `);
 
   applyAdditiveMigrations(db);
+  createFavouritesTable(db);
+}
+
+/**
+ * Recipes the user decided to keep. The primary key stops the same recipe
+ * from being saved twice, which is what the UI needs to show a single
+ * heart instead of a counter.
+ */
+export function createFavouritesTable(db: DatabaseSync): void {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS favorites (
+      user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      dish_id    INTEGER NOT NULL REFERENCES dishes(id) ON DELETE CASCADE,
+      created_at TEXT    NOT NULL DEFAULT (datetime('now')),
+      PRIMARY KEY (user_id, dish_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_favorites_user ON favorites(user_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_favorites_dish ON favorites(dish_id);
+  `);
 }
 
 /**
