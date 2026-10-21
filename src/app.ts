@@ -2,6 +2,12 @@ import express, { type Express } from "express";
 import cors from "cors";
 import { env } from "./config/env.ts";
 import { router } from "./routes/api.routes.ts";
+import { favoritesRouter } from "./routes/favorites.routes.ts";
+import { historyRouter } from "./routes/history.routes.ts";
+import { preferencesRouter } from "./routes/preferences.routes.ts";
+import { assistantRouter } from "./routes/assistant.routes.ts";
+import { questionnaireRouter } from "./routes/questionnaire.routes.ts";
+import { discoveryRouter } from "./routes/discovery.routes.ts";
 import { errorHandler, notFoundHandler } from "./middleware/error.ts";
 import { modelStore } from "./services/modelStore.ts";
 
@@ -56,6 +62,25 @@ export function createApp(): Express {
         "GET  /api/users/:id/interactions",
         "GET  /api/users/:id/taste",
         "GET  /api/users/:id/sessions",
+        "GET  /api/users/:id/favorites",
+        "POST /api/users/:id/favorites",
+        "POST /api/users/:id/favorites/toggle",
+        "DELETE /api/users/:id/favorites/:dishId",
+        "GET  /api/users/:id/history",
+        "POST /api/users/:id/history",
+        "PATCH /api/users/:id/history/:dishId",
+        "DELETE /api/users/:id/history/:dishId",
+        "GET  /api/users/:id/saved-preferences",
+        "PUT  /api/users/:id/saved-preferences",
+        "DELETE /api/users/:id/saved-preferences/:key",
+        "GET  /api/recipes/:slug/allergens",
+        "POST /api/recipes/:slug/assistant",
+        "POST /api/recipes/:slug/substitute",
+        "POST /api/recipes/:slug/adapt",
+        "GET  /api/questionnaire",
+        "POST /api/questionnaire/recommend",
+        "POST /api/discover/by-ingredients",
+        "POST /api/planning/meals",
         "POST /api/recommendations",
         "GET  /api/interactions",
         "POST /api/interactions",
@@ -64,6 +89,12 @@ export function createApp(): Express {
   });
 
   app.use("/api", router);
+  app.use("/api", favoritesRouter);
+  app.use("/api", historyRouter);
+  app.use("/api", preferencesRouter);
+  app.use("/api", assistantRouter);
+  app.use("/api", questionnaireRouter);
+  app.use("/api", discoveryRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);
