@@ -90,8 +90,15 @@ export function buildHistoryBlock(
   if (recent.length === 0) return "";
   return [
     "Conversación previa:",
-    ...recent.map((turn) => `${turn.role === "user" ? "Persona" : "Asistente"}: ${turn.content}`),
+    ...recent.map((turn) => `${turn.role === "user" ? "Persona" : "Asistente"}: ${trimTurn(turn.content)}`),
   ].join("\n");
+}
+
+/** A long previous answer is not worth sending again in full. */
+export function trimTurn(content: string, limit = 400): string {
+  const clean = content.trim();
+  if (clean.length <= limit) return clean;
+  return `${clean.slice(0, limit - 1).trimEnd()}…`;
 }
 
 /** The final user prompt. */
