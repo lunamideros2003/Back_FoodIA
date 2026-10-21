@@ -1,4 +1,5 @@
 import type { Dish } from "../domain/types.ts";
+import type { CravingKey } from "../domain/questionnaire.ts";
 import { cravingScore, timeFitScore } from "../ai/taxonomy.ts";
 
 /**
@@ -85,7 +86,7 @@ export interface IngredientSearchOptions {
   maxPrepMinutes?: number | null;
   /** Only dishes the person can cook right now, missing nothing. */
   onlyComplete?: boolean;
-  craving?: string | null;
+  craving?: CravingKey | null;
 }
 
 /**

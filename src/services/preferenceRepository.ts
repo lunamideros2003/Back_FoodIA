@@ -97,5 +97,5 @@ export function deletePreference(
 /** Removes every saved preference of a user. */
 export function clearSavedPreferences(userId: number, db: DatabaseSync = getDb()): number {
   const result = db.prepare(`DELETE FROM saved_preferences WHERE user_id = ?`).run(userId);
-  return result.changes;
+  return Number(result.changes);
 }
