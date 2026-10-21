@@ -68,6 +68,19 @@ export interface EmpathyNotice {
 }
 
 /**
+ * The hint that points at human support. It is only offered when the words
+ * suggest the situation is bigger than a recipe, and it never tells the person
+ * what is wrong with them.
+ */
+export function buildSupportSuggestion(text: string | null | undefined): string | null {
+  if (!mentionsDistress(text)) return null;
+  return (
+    "Si llevas mucho tiempo con este ánimo, habla con alguien de confianza o con un profesional. " +
+    "Esta app de recetas no puede sustituir esa ayuda."
+  );
+}
+
+/**
  * The paragraph shown above the recommendations. It never says that a recipe
  * will change how somebody feels; it only says what the app can do, which is
  * to find something that matches the moment.
