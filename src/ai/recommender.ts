@@ -18,7 +18,7 @@ import { conditionsOf, DAILY_SUGAR_REFERENCE_G, evaluateDish } from "./health.ts
 import { extractIntent, type ExtractedIntent } from "./intent.ts";
 import { MoodModel, type TrainingSample } from "./moodModel.ts";
 import { TasteProfile } from "./tasteProfile.ts";
-import { cravingScore, mapMoodOption, timeBudgetCeiling, timeFitScore } from "./taxonomy.ts";
+import { cravingScore, mapMoodOption, availableIngredientBonus, timeBudgetCeiling, timeFitScore } from "./taxonomy.ts";
 
 export const MODEL_VERSION = "foodmood-1.4.0";
 export const STRATEGY = "hybrid-mood-taste-itemknn-mmr";
@@ -251,34 +251,6 @@ const DIFFICULTY_RANK: Record<Dish["difficulty"], number> = {
 
 /** How much having the ingredients at home is worth in the final score. */
 const INGREDIENT_BONUS_WEIGHT = 0.08;
-
-/**
- * How much of the recipe the person already has at home. It is a soft signal
- * on purpose: having the ingredients is a good reason to suggest a dish, but
- * it is never a reason to hide the other options.
- */
-export function availableIngredientBonus(
-  dish: Dish,
-  available: string[] | undefined,
-): number {
-  if (!available || available.length === 0) return 0;
-
-  const cleaned = available.map(normalizeToken).filter(Boolean);
-  if (cleaned.length === 0) return 0;
-
-  const labels = dish.ingredients.map((item) => normalizeToken(item.label));
-  const required = dish.ingredients.filter((item) => !item.optional);
-  const pool = required.length > 0 ? required : dish.ingredients;
-
-  const hits = pool.filter((item) =>
-    cleaned.some((entry) => {
-      const label = normalizeToken(item.label);
-      return label.includes(entry) || entry.includes(label);
-    }),
-  ).length;
-
-  return clamp(hits / Math.max(1, pool.length));
-}
 
 const STRONG_AXIS_THRESHOLD = 0.5;
 

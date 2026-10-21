@@ -110,3 +110,39 @@ export function timeBudgetCeiling(budget: TimeBudgetKey | null | undefined): num
       return null;
   }
 }
+
+/**
+ * How much of the recipe the person already has at home. It is a soft signal
+ * on purpose: having the ingredients is a good reason to suggest a dish, but
+ * it is never a reason to hide the other options.
+ */
+export function availableIngredientBonus(
+  dish: Dish,
+  available: string[] | undefined,
+): number {
+  if (!available || available.length === 0) return 0;
+
+  const cleaned = available.map(normalizeToken).filter(Boolean);
+  if (cleaned.length === 0) return 0;
+
+  const required = dish.ingredients.filter((item) => !item.optional);
+  const pool = required.length > 0 ? required : dish.ingredients;
+  if (pool.length === 0) return 0;
+
+  const hits = pool.filter((item) =>
+    cleaned.some((entry) => {
+      const label = normalizeToken(item.label);
+      return label.includes(entry) || entry.includes(label);
+    }),
+  ).length;
+
+  return Math.max(0, Math.min(1, hits / pool.length));
+}
+
+function normalizeToken(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
