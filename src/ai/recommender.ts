@@ -281,6 +281,12 @@ function buildReason(
   if (note?.trim()) {
     parts.push(`lee tu nota sobre «${note.trim()}»`);
   }
+  if (breakdown.cravingFit > 0.55) {
+    parts.push("coincide con lo que dijiste que te apetece");
+  }
+  if (breakdown.timeFit > 0.7) {
+    parts.push(`se prepara en ${dish.prepMinutes} minutos`);
+  }
   if (breakdown.preferenceFit > 0.6) {
     parts.push("encaja con las preferencias que tienes guardadas");
   }
