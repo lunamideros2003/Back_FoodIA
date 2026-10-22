@@ -13,8 +13,9 @@ import { allergensOf } from "../src/ai/allergens.ts";
 import { findDishBySlug } from "../src/services/repositories.ts";
 import type { AssistantContext } from "../src/domain/assistant.ts";
 
-const dish = findDishBySlug("huevos-rancheros");
-assert.ok(dish, "El plato de prueba debe existir");
+const found = findDishBySlug("huevos-rancheros");
+if (!found) throw new Error("El plato de prueba debe existir");
+const dish = found;
 
 function context(overrides: Partial<AssistantContext> = {}): AssistantContext {
   return {
