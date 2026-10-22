@@ -189,8 +189,17 @@ function hardFilters(
   ].map(normalizeToken);
   const labels = dish.ingredients.map((item) => normalizeToken(item.label));
 
-  if (allergies.some((item) => labels.includes(item))) return "Contiene un ingrediente que te causa alergia";
-  if (disliked.some((item) => labels.includes(item))) return "No te gusta ese ingrediente";
+  // "pollo" has to block "Pechuga de pollo": an excluded ingredient is a hard
+  // restriction, so the comparison is by containment, not by exact equality.
+  const containsAny = (terms: string[]): boolean =>
+    terms.some(
+      (term) =>
+        term.length >= 3 &&
+        labels.some((label) => label.includes(term) || term.includes(label)),
+    );
+
+  if (containsAny(allergies)) return "Contiene un ingrediente que te causa alergia";
+  if (containsAny(disliked)) return "No te gusta ese ingrediente";
 
   // A declared allergy is a hard restriction, not a preference: the recipe is
   // removed from the list even when the model would have loved it.
