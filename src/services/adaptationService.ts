@@ -38,6 +38,15 @@ export function parseQuantity(quantity: string): { value: number; rest: string }
   const clean = quantity.trim();
   if (!clean) return null;
 
+  // "1/2 unidad" is a real quantity in the catalogue, not the number one.
+  const fraction = clean.match(/^(\d+)\s*\/\s*(\d+)\s*(.*)$/);
+  if (fraction) {
+    const numerator = Number.parseInt(fraction[1], 10);
+    const denominator = Number.parseInt(fraction[2], 10);
+    if (denominator === 0) return null;
+    return { value: numerator / denominator, rest: fraction[3].trim() };
+  }
+
   const match = clean.match(/^(\d+(?:[.,]\d+)?)\s*(.*)$/);
   if (!match) return null;
 
@@ -48,11 +57,24 @@ export function parseQuantity(quantity: string): { value: number; rest: string }
   return { value, rest: match[2].trim() };
 }
 
+/** Common fractions a cook reads more easily than a decimal. */
+const FRACTIONS: { value: number; label: string }[] = [
+  { value: 0.25, label: "1/4" },
+  { value: 1 / 3, label: "1/3" },
+  { value: 0.5, label: "1/2" },
+  { value: 2 / 3, label: "2/3" },
+  { value: 0.75, label: "3/4" },
+];
+
 /** Rounds a scaled quantity the way a cook would write it. */
 export function formatQuantity(value: number, unit: string): string {
   const rounded = Math.round(value * 100) / 100;
-  const nice =
-    Number.isInteger(rounded) ? String(rounded) : String(Math.round(rounded * 10) / 10);
+  const fraction = FRACTIONS.find((item) => Math.abs(rounded - item.value) < 0.02);
+  const nice = fraction
+    ? fraction.label
+    : Number.isInteger(rounded)
+      ? String(rounded)
+      : String(Math.round(rounded * 10) / 10);
   return unit ? `${nice} ${unit}` : nice;
 }
 
