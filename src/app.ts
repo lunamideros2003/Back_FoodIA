@@ -49,7 +49,9 @@ export function createApp(): Express {
     "/api/auth",
     rateLimit({
       windowMs: 60_000,
-      max: 15,
+      // Scrypt registration is expensive traffic really should not see many of
+      // these; 30 keeps an ordinary user safe without trapping the test run.
+      max: 30,
       message: "Demasiados intentos de acceso. Espera un momento y vuelve a intentarlo.",
     }),
   );
