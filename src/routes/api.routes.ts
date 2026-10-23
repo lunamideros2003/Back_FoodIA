@@ -182,6 +182,11 @@ const dishQuerySchema = z.object({
   q: z.string().max(80).optional(),
   maxPrepMinutes: z.coerce.number().int().min(1).max(240).optional(),
   diet: z.enum(DIETS).optional(),
+  difficulty: z.enum(["facil", "media", "avanzada"]).optional(),
+  maxCalories: z.coerce.number().int().min(50).max(2000).optional(),
+  excludeAllergen: z.string().max(30).optional(),
+  sort: z.enum(["prep", "calories", "name"]).optional(),
+  offset: z.coerce.number().int().min(0).max(1000).optional(),
   limit: z.coerce.number().int().min(1).max(100).optional(),
 });
 
@@ -221,11 +226,39 @@ router.get("/dishes", (req, res) => {
   if (query.diet) {
     items = items.filter((dish) => matchesDiet(dish, query.diet));
   }
+  if (query.difficulty) {
+    items = items.filter((dish) => dish.difficulty === query.difficulty);
+  }
+  if (query.maxCalories) {
+    items = items.filter((dish) => dish.calories <= query.maxCalories!);
+  }
+  if (query.excludeAllergen) {
+    const allergen = query.excludeAllergen.toLowerCase().trim();
+    items = items.filter(
+      (dish) => !allergensOf(dish).some((item) => item.toLowerCase().includes(allergen)),
+    );
+  }
+
+  if (query.sort === "prep") {
+    items = [...items].sort((a, b) => a.prepMinutes - b.prepMinutes);
+  } else if (query.sort === "calories") {
+    items = [...items].sort((a, b) => a.calories - b.calories);
+  } else if (query.sort === "name") {
+    items = [...items].sort((a, b) => a.nameEs.localeCompare(b.nameEs, "es"));
+  }
 
   const total = items.length;
+  const offset = query.offset ?? 0;
+  if (offset > 0) items = items.slice(offset);
   if (query.limit) items = items.slice(0, query.limit);
 
-  res.json({ total, items });
+  res.json({
+    total,
+    offset,
+    limit: query.limit ?? null,
+    count: items.length,
+    items,
+  });
 });
 
 router.get("/dishes/:slug", (req, res) => {
