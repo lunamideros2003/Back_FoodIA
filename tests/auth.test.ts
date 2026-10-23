@@ -177,6 +177,35 @@ describe("auth routes", () => {
     assert.equal(reuse.status, 401);
   });
 
+  it("neighbours cannot read each other's data", async () => {
+    const a = await register({
+      email: "duena@example.com",
+      password: "tortilla-de-patatas1",
+      displayName: "Due\u00f1a",
+    });
+    const b = await register({
+      email: "vecino@example.com",
+      password: "tortilla-de-patatas2",
+      displayName: "Vecino",
+    });
+    const aBody = (await a.json()) as AuthPayload;
+    const bBody = (await b.json()) as AuthPayload;
+    const aId = aBody.user?.id ?? 0;
+
+    const withOwnToken = await fetch(`${base}/users/${aId}/overview`, {
+      headers: { authorization: `Bearer ${bBody.token}` },
+    });
+    assert.equal(withOwnToken.status, 403);
+
+    const withoutToken = await fetch(`${base}/users/${aId}/overview`);
+    assert.equal(withoutToken.status, 401);
+
+    const own = await fetch(`${base}/users/${aId}/overview`, {
+      headers: { authorization: `Bearer ${aBody.token}` },
+    });
+    assert.equal(own.status, 200);
+  });
+
   it("answers /auth/session with null when there is no valid token", async () => {
     const response = await fetch(`${base}/auth/session`, {
       headers: { authorization: "Bearer nada-que-ver" },
