@@ -96,7 +96,7 @@ export function computeBalance(input: BalanceInput): BalanceResponse {
 
   for (const interaction of logged) {
     const dish = dishById.get(interaction.dishId);
-    if (dish) push(dish, interaction.createdAt);
+    if (dish) push(dish, interaction.createdAt, interaction.servings);
   }
 
   const justChosen = input.justChosenDishId ? dishById.get(input.justChosenDishId) : null;
@@ -279,12 +279,17 @@ function round(value: number, decimals: number): number {
   return Math.round(value * factor) / factor;
 }
 
-export function logConsumed(userId: number, dishId: number, moodKey?: MoodKey | null): void {
+export function logConsumed(
+  userId: number,
+  dishId: number,
+  moodKey?: MoodKey | null,
+  servings = 1,
+): void {
   getDb()
     .prepare(
-      `INSERT INTO interactions (user_id, dish_id, mood_key, action) VALUES (?, ?, ?, 'cook')`,
+      `INSERT INTO interactions (user_id, dish_id, mood_key, action, servings) VALUES (?, ?, ?, 'cook', ?)`,
     )
-    .run(userId, dishId, moodKey ?? null);
+    .run(userId, dishId, moodKey ?? null, Math.min(6, Math.max(0.5, servings)));
 }
 
 export { buildReason, STRATEGY };

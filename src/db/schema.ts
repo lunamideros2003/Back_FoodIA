@@ -85,6 +85,7 @@ export function applySchema(db: DatabaseSync): void {
       mood_key   TEXT,
       action     TEXT    NOT NULL,
       rating     INTEGER,
+      servings   REAL    NOT NULL DEFAULT 1,
       created_at TEXT    NOT NULL DEFAULT (datetime('now'))
     );
 
@@ -202,11 +203,13 @@ function applyAdditiveMigrations(db: DatabaseSync): void {
   // ("flour" is "Harina de trigo" in a cake and "Bizcocho savero" in a
   // tiramisu), so the label belongs to the link, not to the ingredient.
   const dishIngredientColumns = [["label", "TEXT"]] as const;
+  const interactionColumns = [["servings", "REAL NOT NULL DEFAULT 1"]] as const;
 
   for (const [table, additions] of [
     ["dishes", dishColumns],
     ["user_preferences", preferenceColumns],
     ["dish_ingredients", dishIngredientColumns],
+    ["interactions", interactionColumns],
   ] as const) {
     const existing = new Set(
       (db.prepare(`PRAGMA table_info(${table})`).all() as unknown as { name: string }[]).map(

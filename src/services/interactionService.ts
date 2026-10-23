@@ -57,6 +57,7 @@ export function recordInteraction(input: RecordInteractionInput): Interaction {
     moodKey: input.moodKey ?? null,
     action: input.action,
     rating,
+    servings: 1,
     createdAt: new Date().toISOString(),
   };
 }

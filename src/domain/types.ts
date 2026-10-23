@@ -254,6 +254,7 @@ export interface Interaction {
   moodKey: MoodKey | null;
   action: InteractionAction;
   rating: number | null;
+  servings: number;
   createdAt: string;
 }
 

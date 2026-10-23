@@ -86,6 +86,7 @@ interface InteractionRow {
   mood_key: string | null;
   action: string;
   rating: number | null;
+  servings: number;
   created_at: string;
 }
 
@@ -264,6 +265,7 @@ export function listInteractions(
     moodKey: row.mood_key as MoodKey | null,
     action: row.action as Interaction["action"],
     rating: row.rating,
+    servings: row.servings,
     createdAt: row.created_at,
   }));
 }

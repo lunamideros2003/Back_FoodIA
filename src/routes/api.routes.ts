@@ -668,14 +668,18 @@ router.post("/users/:id/consumed", (req, res) => {
   if (!getUser(id)) throw new HttpError(404, "Usuario no encontrado.");
 
   const body = z
-    .object({ dishId: z.number().int().positive(), moodKey: z.enum(MOOD_KEYS).nullish() })
+    .object({
+      dishId: z.number().int().positive(),
+      moodKey: z.enum(MOOD_KEYS).nullish(),
+      servings: z.number().min(0.5).max(6).optional(),
+    })
     .parse(req.body);
 
   if (!listDishes().some((dish) => dish.id === body.dishId)) {
     throw new HttpError(404, "El plato no existe.");
   }
 
-  logConsumed(id, body.dishId, body.moodKey);
+  logConsumed(id, body.dishId, body.moodKey, body.servings);
   res.status(201).json({ ok: true, dishId: body.dishId });
 });
 
