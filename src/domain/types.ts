@@ -245,6 +245,7 @@ export interface User {
   displayName: string;
   createdAt: string;
   preferences: UserPreferences;
+  getPasswordHash?: () => string | null;
 }
 
 export interface Interaction {

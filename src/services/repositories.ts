@@ -64,6 +64,7 @@ interface UserRow {
   id: number;
   email: string;
   display_name: string;
+  password_hash: string | null;
   created_at: string;
 }
 
@@ -217,12 +218,15 @@ export function findUserById(id: number, db: DatabaseSync = getDb()): User | nul
     .prepare(`SELECT * FROM user_preferences WHERE user_id = ?`)
     .get(id) as PreferencesRow | undefined;
 
+  const passwordHash = row.password_hash;
+
   return {
     id: row.id,
     email: row.email,
     displayName: row.display_name,
     createdAt: row.created_at,
     preferences: mapPreferences(preferences),
+    getPasswordHash: passwordHash ? () => passwordHash : () => null,
   };
 }
 
