@@ -2,6 +2,7 @@ import express, { type Express } from "express";
 import cors from "cors";
 import { env } from "./config/env.ts";
 import { router } from "./routes/api.routes.ts";
+import { authRouter } from "./routes/auth.routes.ts";
 import { favoritesRouter } from "./routes/favorites.routes.ts";
 import { historyRouter } from "./routes/history.routes.ts";
 import { preferencesRouter } from "./routes/preferences.routes.ts";
@@ -112,6 +113,7 @@ export function createApp(): Express {
     });
   });
 
+  app.use("/api/auth", authRouter);
   app.use("/api", router);
   app.use("/api", favoritesRouter);
   app.use("/api", historyRouter);

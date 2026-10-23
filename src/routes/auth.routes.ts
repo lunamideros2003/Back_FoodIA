@@ -74,7 +74,7 @@ authRouter.post(
     const body = credentialsSchema.parse(req.body);
     const user = findUserByEmail(body.email.toLowerCase());
 
-    if (!user || !verifyPassword(body.password, user.getPasswordHash())) {
+    if (!user || !verifyPassword(body.password, user.getPasswordHash?.() ?? null)) {
       throw new HttpError(401, "Correo o contraseña incorrectos.");
     }
 
