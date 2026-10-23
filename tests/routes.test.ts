@@ -158,6 +158,27 @@ describe("service routes", () => {
     assert.ok(body.allergens.some((allergen) => allergen.key === "Gluten"));
   });
 
+  it("suggests the dishes that fit a mood, best first", async () => {
+    const response = await get("/moods/tired/dishes?limit=3");
+    assert.equal(response.status, 200);
+    const body = (await response.json()) as {
+      mood: { key: string };
+      items: { dish: { id: number }; score: number }[];
+    };
+
+    assert.equal(body.mood.key, "tired");
+    assert.equal(body.items.length, 3);
+    for (let i = 1; i < body.items.length; i += 1) {
+      assert.ok(body.items[i - 1].score >= body.items[i].score);
+    }
+  });
+
+  it("returns 404 for an unknown mood", async () => {
+    const response = await get("/moods/nope/dishes");
+    assert.equal(response.status, 404);
+  });
+
+
   it("returns the allergens of a recipe", async () => {
     const response = await get("/recipes/huevos-rancheros/allergens");
     assert.equal(response.status, 200);
