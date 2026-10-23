@@ -1,5 +1,6 @@
 import { getDb, transaction } from "../db/connection.ts";
 import { findUserByEmail, findUserById, listUsers } from "./repositories.ts";
+import { hashPassword } from "./authService.ts";
 import type { User, UserPreferences } from "../domain/types.ts";
 import { EMPTY_HEALTH_PROFILE } from "../domain/types.ts";
 
@@ -7,6 +8,8 @@ export interface CreateUserInput {
   email: string;
   displayName: string;
   preferences?: Partial<UserPreferences>;
+  passwordHash?: string;
+  withPassword?: boolean;
 }
 
 const DIETS: UserPreferences["diet"][] = ["omnivore", "vegetarian", "vegan", "pescatarian"];
@@ -51,11 +54,12 @@ export function createUser(input: CreateUserInput): User {
   }
 
   const preferences = normalizePreferences(input.preferences);
+  const passwordHash = input.withPassword ? input.passwordHash! : null;
 
   const userId = transaction((db) => {
     const result = db
-      .prepare(`INSERT INTO users (email, display_name) VALUES (?, ?)`)
-      .run(email, displayName);
+      .prepare(`INSERT INTO users (email, display_name, password_hash) VALUES (?, ?, ?)`)
+      .run(email, displayName, passwordHash);
 
     const id = Number(result.lastInsertRowid);
     db.prepare(
