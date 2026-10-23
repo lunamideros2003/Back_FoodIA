@@ -10,6 +10,7 @@ import { questionnaireRouter } from "./routes/questionnaire.routes.ts";
 import { discoveryRouter } from "./routes/discovery.routes.ts";
 import { overviewRouter } from "./routes/overview.routes.ts";
 import { errorHandler, notFoundHandler } from "./middleware/error.ts";
+import { rateLimit } from "./middleware/rateLimit.ts";
 import { modelStore } from "./services/modelStore.ts";
 
 export function createApp(): Express {
@@ -41,6 +42,13 @@ export function createApp(): Express {
   );
 
   app.use(express.json({ limit: "256kb" }));
+
+  // The endpoints that may reach a model provider get a tighter limit than
+  // the rest of the catalogue, which is cheap to serve.
+  app.use(
+    ["/api/recipes", "/api/questionnaire/recommend", "/api/recommendations"],
+    rateLimit({ windowMs: 60_000, max: 40 }),
+  );
 
   app.get("/", (_req, res) => {
     res.json({
