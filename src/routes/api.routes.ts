@@ -208,6 +208,24 @@ function matchesDiet(dish: Dish, diet: (typeof DIETS)[number] | undefined): bool
   );
 }
 
+router.get("/moods/:key/dishes", (req, res) => {
+  const mood = findMood(req.params.key as MoodKey);
+  if (!mood) throw new HttpError(404, "No encontramos ese estado de ánimo.");
+
+  const limit = z.coerce.number().int().min(1).max(20).optional().parse(req.query.limit) ?? 4;
+
+  modelStore.ensureReady();
+  const items = listDishes()
+    .map((dish) => ({
+      dish,
+      score: Math.round(modelStore.moodModel.affinity(mood.key, dish.axes).score * 1000) / 1000,
+    }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit);
+
+  res.json({ mood, items });
+});
+
 router.get("/dishes", (req, res) => {
   const query = dishQuerySchema.parse(req.query);
   const needle = query.q?.toLowerCase().trim();

@@ -60,6 +60,7 @@ export function createApp(): Express {
         "POST /api/ai/retrain",
         "GET  /api/moods",
         "GET  /api/moods/:key/summary",
+        "GET  /api/moods/:key/dishes",
         "GET  /api/categories",
         "GET  /api/dishes",
         "GET  /api/dishes/random",
