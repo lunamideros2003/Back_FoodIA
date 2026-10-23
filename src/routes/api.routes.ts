@@ -144,6 +144,11 @@ router.get("/health", (_req, res) => {
     service: "foodmood-ia-backend",
     version: modelStore.version,
     aiProvider: env.ai.provider,
+    catalogue: {
+      dishes: listDishes().length,
+      moods: listMoods().length,
+    },
+    uptimeSeconds: Math.round(process.uptime()),
     timestamp: new Date().toISOString(),
   });
 });
