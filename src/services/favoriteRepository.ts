@@ -117,6 +117,12 @@ export function favoriteCounts(db: DatabaseSync = getDb()): Map<number, number> 
   return new Map(rows.map((row) => [row.dish_id, row.total]));
 }
 
+/** Removes every favourite of a user, for the "start over" button. */
+export function clearFavorites(userId: number, db: DatabaseSync = getDb()): number {
+  const result = db.prepare(`DELETE FROM favorites WHERE user_id = ?`).run(userId);
+  return Number(result.changes);
+}
+
 /** The dishes that are not in the catalogue anymore are cleaned up. */
 export function pruneFavorites(
   userId: number,

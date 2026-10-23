@@ -135,6 +135,12 @@ export function deleteRecipeEntry(
   return result.changes > 0;
 }
 
+/** Removes the whole history of a user, for the "borrar historial" button. */
+export function clearRecipeEntries(userId: number, db: DatabaseSync = getDb()): number {
+  const result = db.prepare(`DELETE FROM recipe_entries WHERE user_id = ?`).run(userId);
+  return Number(result.changes);
+}
+
 /** How many recipes the user cooked, used for the summary line. */
 export function countPrepared(userId: number, db: DatabaseSync = getDb()): number {
   const row = db
