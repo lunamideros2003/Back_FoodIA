@@ -74,6 +74,7 @@ export function applySchema(db: DatabaseSync): void {
       ingredient_id INTEGER NOT NULL REFERENCES ingredients(id) ON DELETE CASCADE,
       quantity      TEXT    NOT NULL DEFAULT '',
       optional      INTEGER NOT NULL DEFAULT 0,
+      label         TEXT,
       PRIMARY KEY (dish_id, ingredient_id)
     );
 
@@ -197,9 +198,15 @@ function applyAdditiveMigrations(db: DatabaseSync): void {
     ["daily_calorie_goal", "INTEGER NOT NULL DEFAULT 2000"],
   ] as const;
 
+  // The same ingredient can read differently from one recipe to the next
+  // ("flour" is "Harina de trigo" in a cake and "Bizcocho savero" in a
+  // tiramisu), so the label belongs to the link, not to the ingredient.
+  const dishIngredientColumns = [["label", "TEXT"]] as const;
+
   for (const [table, additions] of [
     ["dishes", dishColumns],
     ["user_preferences", preferenceColumns],
+    ["dish_ingredients", dishIngredientColumns],
   ] as const) {
     const existing = new Set(
       (db.prepare(`PRAGMA table_info(${table})`).all() as unknown as { name: string }[]).map(

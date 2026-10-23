@@ -3,6 +3,8 @@ import { getDb, transaction } from "./connection.ts";
 import { ALL_DISHES, MOODS } from "./seed/index.ts";
 import { RECIPES } from "./seed/recipes.ts";
 import { DEMO_INTERACTIONS } from "./seed/demo-interactions.ts";
+import { findSubstitutionsFor } from "./seed/dietary.ts";
+import { allergensFromLabels } from "../ai/allergens.ts";
 
 export interface SeedReport {
   moods: number;
@@ -106,12 +108,13 @@ function seedDishes(db: DatabaseSync): number {
        name, name_es, slug, category, description, prep_minutes, difficulty,
        calories, protein_g, carbs_g, fat_g, price_level, image_url, tags, axes,
        is_vegetarian, is_vegan, contains_gluten,
-       servings, steps, chef_tip, sugar_g, fiber_g, sodium_mg
-     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       servings, steps, chef_tip, sugar_g, fiber_g, sodium_mg,
+       allergens, verified_substitutions
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
   const linkIngredient = db.prepare(
-    `INSERT OR IGNORE INTO dish_ingredients (dish_id, ingredient_id, quantity, optional)
-     VALUES (?, ?, ?, ?)`,
+    `INSERT OR IGNORE INTO dish_ingredients (dish_id, ingredient_id, quantity, optional, label)
+     VALUES (?, ?, ?, ?, ?)`,
   );
 
   for (const dish of ALL_DISHES) {
@@ -123,6 +126,18 @@ function seedDishes(db: DatabaseSync): number {
     if (!recipe) {
       throw new Error(`Falta la receta del plato "${dish.slug}"`);
     }
+
+    const allergens = allergensFromLabels(
+      dish.ingredients.map((item) => item.label),
+      dish.containsGluten,
+    );
+    const verified = [
+      ...new Map(
+        dish.ingredients
+          .flatMap((item) => findSubstitutionsFor(item.label))
+          .map((option) => [`${option.original}|${option.replacement}`, option]),
+      ).values(),
+    ];
 
     const result = insertDish.run(
       dish.name,
@@ -151,6 +166,8 @@ function seedDishes(db: DatabaseSync): number {
       perServing(recipe.sugarGrams, recipe.servings),
       perServing(recipe.fiberGrams, recipe.servings),
       perServing(recipe.sodiumMg, recipe.servings),
+      JSON.stringify(allergens),
+      JSON.stringify(verified),
     );
 
     const dishId = Number(result.lastInsertRowid);
@@ -161,6 +178,7 @@ function seedDishes(db: DatabaseSync): number {
         found.id,
         item.quantity,
         item.optional ? 1 : 0,
+        item.label,
       );
     }
   }

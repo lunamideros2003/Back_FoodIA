@@ -16,29 +16,37 @@ const MARKERS = ALLERGEN_MARKERS.map((marker) => ({
 }));
 
 /**
+ * The allergens implied by a list of ingredient labels. It is exported so the
+ * seed can store the same answer the ranking computes, and both stay in sync.
+ */
+export function allergensFromLabels(labels: string[], containsGluten = false): string[] {
+  const normalized = labels.map(normalizeLabel);
+  const found: string[] = [];
+
+  for (const marker of MARKERS) {
+    const hit = marker.labels.some((candidate) =>
+      normalized.some((label) => label === candidate || label.includes(candidate)),
+    );
+    if (hit) found.push(marker.allergen);
+  }
+
+  // Gluten is already tracked as a dedicated flag on the dish.
+  if (containsGluten && !found.includes("Gluten")) found.push("Gluten");
+
+  return found;
+}
+
+/**
  * The allergens really present in the dish, taken from the ingredient list.
  *
  * The result is a hard fact coming from the catalogue, not from a model, so it
  * can be trusted to block a recipe.
  */
 export function allergensOf(dish: Dish): string[] {
-  const labels = dish.ingredients.map((item) => normalizeLabel(item.label));
-  const found: string[] = [];
-
-  for (const marker of MARKERS) {
-    const hit = marker.labels.some(
-      (candidate) =>
-        labels.some(
-          (label) => label === candidate || label.includes(candidate),
-        ),
-    );
-    if (hit) found.push(marker.allergen);
-  }
-
-  // Gluten is already tracked as a dedicated flag on the dish.
-  if (dish.containsGluten && !found.includes("Gluten")) found.push("Gluten");
-
-  return found;
+  return allergensFromLabels(
+    dish.ingredients.map((item) => item.label),
+    dish.containsGluten,
+  );
 }
 
 /**

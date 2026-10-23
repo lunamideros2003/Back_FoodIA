@@ -146,7 +146,8 @@ export function listDishes(db: DatabaseSync = getDb()): Dish[] {
   const rows = db.prepare(`SELECT * FROM dishes ORDER BY id`).all() as unknown as DishRow[];
   const ingredients = db
     .prepare(
-      `SELECT di.dish_id, di.quantity, di.optional, i.id AS ingredient_id, i.name, i.label, i.category
+      `SELECT di.dish_id, di.quantity, di.optional, i.id AS ingredient_id, i.name,
+              COALESCE(di.label, i.label) AS label, i.category
        FROM dish_ingredients di
        JOIN ingredients i ON i.id = di.ingredient_id
        ORDER BY di.dish_id, i.label`,
