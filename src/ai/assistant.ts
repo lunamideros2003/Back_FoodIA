@@ -1,4 +1,5 @@
 import { env } from "../config/env.ts";
+import { llmActive } from "./provider.ts";
 import type { AssistantAnswer, AssistantContext, AssistantTurn } from "../domain/assistant.ts";
 import {
   buildAdaptationAnswer,
@@ -69,7 +70,7 @@ async function callProvider(
   history: AssistantTurn[] | undefined,
   timeoutMs: number,
 ): Promise<string | null> {
-  if (env.ai.provider !== "openai" || !env.ai.apiKey) return null;
+  if (!llmActive()) return null;
 
   try {
     const response = await fetch(`${env.ai.baseUrl.replace(/\/$/, "")}/chat/completions`, {
@@ -162,6 +163,6 @@ export async function answerAssistantQuestion(
   const fallback = localAnswer(trimmed, context, options);
   return {
     ...fallback,
-    source: env.ai.provider === "openai" && env.ai.apiKey ? "llm-fallback" : "local-model",
+    source: llmActive() ? "llm-fallback" : "local-model",
   };
 }

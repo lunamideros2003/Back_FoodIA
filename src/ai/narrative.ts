@@ -1,4 +1,5 @@
 import { env } from "../config/env.ts";
+import { llmActive } from "./provider.ts";
 import type { Mood, RecommendedDish } from "../domain/types.ts";
 import type { RecommendationRequest } from "../domain/types.ts";
 
@@ -85,7 +86,7 @@ function buildPrompt(input: NarrativeInput): string {
 export async function buildNarrative(input: NarrativeInput): Promise<NarrativeResult> {
   const local = composeLocalNarrative(input);
 
-  if (env.ai.provider !== "openai" || !env.ai.apiKey) {
+  if (!llmActive()) {
     return { text: local, source: "local-model" };
   }
 

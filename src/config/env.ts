@@ -12,6 +12,25 @@ function toInt(value: string | undefined, fallback: number): number {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+type AiProvider = "local" | "openai" | "groq";
+
+/**
+ * Every provider is OpenAI-compatible, they only disagree on the default
+ * endpoint and the name of the model they serve.
+ */
+interface ProviderDefaults {
+  baseUrl: string;
+  model: string;
+}
+
+const PROVIDER_DEFAULTS: Partial<Record<AiProvider, ProviderDefaults>> = {
+  openai: { baseUrl: "https://api.openai.com/v1", model: "gpt-4o-mini" },
+  groq: { baseUrl: "https://api.groq.com/openai/v1", model: "llama-3.3-70b-versatile" },
+};
+
+const AI_PROVIDER = (process.env.AI_PROVIDER ?? "local") as AiProvider;
+const providerDefault = PROVIDER_DEFAULTS[AI_PROVIDER];
+
 export const env = {
   nodeEnv: process.env.NODE_ENV ?? "development",
   port: toInt(process.env.PORT, 4000),
@@ -24,10 +43,10 @@ export const env = {
     .map((origin) => origin.trim())
     .filter(Boolean),
   ai: {
-    provider: (process.env.AI_PROVIDER ?? "local") as "local" | "openai",
-    baseUrl: process.env.AI_BASE_URL ?? "https://api.openai.com/v1",
+    provider: AI_PROVIDER as AiProvider,
+    baseUrl: process.env.AI_BASE_URL ?? providerDefault?.baseUrl ?? "https://api.openai.com/v1",
     apiKey: process.env.AI_API_KEY ?? "",
-    model: process.env.AI_MODEL ?? "gpt-4o-mini",
+    model: process.env.AI_MODEL ?? providerDefault?.model ?? "gpt-4o-mini",
     /** How long the cooking assistant waits before falling back. */
     assistantTimeoutMs: toInt(process.env.AI_ASSISTANT_TIMEOUT_MS, 9000),
   },
