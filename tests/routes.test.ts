@@ -92,6 +92,52 @@ describe("service routes", () => {
     assert.equal(body.total, body.items.length);
   });
 
+  it("filters the catalogue and paginates without losing the total", async () => {
+    const response = await get("/dishes?difficulty=facil&maxCalories=500&sort=prep&limit=3&offset=0");
+    assert.equal(response.status, 200);
+    const body = (await response.json()) as {
+      total: number;
+      offset: number;
+      limit: number;
+      count: number;
+      items: { difficulty: string; calories: number; prepMinutes: number }[];
+    };
+
+    assert.ok(body.total > body.count);
+    assert.equal(body.count, 3);
+    assert.equal(body.limit, 3);
+    for (const dish of body.items) {
+      assert.equal(dish.difficulty, "facil");
+      assert.ok(dish.calories <= 500);
+    }
+    for (let i = 1; i < body.items.length; i += 1) {
+      assert.ok(body.items[i - 1].prepMinutes <= body.items[i].prepMinutes);
+    }
+  });
+
+  it("excludes recipes with a given allergen", async () => {
+    const response = await get("/dishes?excludeAllergen=Gluten&limit=100");
+    assert.equal(response.status, 200);
+    const body = (await response.json()) as { items: { containsGluten: boolean }[] };
+    for (const dish of body.items) assert.equal(dish.containsGluten, false);
+  });
+
+  it("summarises the catalogue for the filters", async () => {
+    const response = await get("/catalog/facets");
+    assert.equal(response.status, 200);
+    const body = (await response.json()) as {
+      total: number;
+      categories: { key: string; count: number }[];
+      prepBuckets: { key: string; count: number }[];
+      allergens: { key: string }[];
+    };
+
+    assert.equal(body.total, 40);
+    assert.ok(body.categories.length > 0);
+    assert.equal(body.prepBuckets.length, 4);
+    assert.ok(body.allergens.some((allergen) => allergen.key === "Gluten"));
+  });
+
   it("returns the allergens of a recipe", async () => {
     const response = await get("/recipes/huevos-rancheros/allergens");
     assert.equal(response.status, 200);
