@@ -303,6 +303,37 @@ router.get("/catalog/facets", (_req, res) => {
   });
 });
 
+/**
+ * "Sorpréndeme": a single recipe chosen at random from whatever the filters
+ * leave. It never picks something the person excluded.
+ */
+router.get("/dishes/random", (req, res) => {
+  const query = dishQuerySchema.parse(req.query);
+
+  let items = listDishes();
+  if (query.category) items = items.filter((dish) => dish.category === query.category);
+  if (query.maxPrepMinutes) {
+    items = items.filter((dish) => dish.prepMinutes <= query.maxPrepMinutes!);
+  }
+  if (query.difficulty) {
+    items = items.filter((dish) => dish.difficulty === query.difficulty);
+  }
+  if (query.diet) items = items.filter((dish) => matchesDiet(dish, query.diet));
+  if (query.excludeAllergen) {
+    const allergen = query.excludeAllergen.toLowerCase().trim();
+    items = items.filter(
+      (dish) => !allergensOf(dish).some((item) => item.toLowerCase().includes(allergen)),
+    );
+  }
+
+  if (items.length === 0) {
+    throw new HttpError(404, "No hay ninguna receta que cumpla esos filtros.");
+  }
+
+  const dish = items[Math.floor(Math.random() * items.length)];
+  res.json({ dish, total: items.length });
+});
+
 router.get("/dishes/:slug", (req, res) => {
   const dish = findDishBySlug(req.params.slug);
   if (!dish) throw new HttpError(404, "No encontramos ese plato.");

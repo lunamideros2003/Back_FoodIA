@@ -62,6 +62,7 @@ export function createApp(): Express {
         "GET  /api/moods/:key/summary",
         "GET  /api/categories",
         "GET  /api/dishes",
+        "GET  /api/dishes/random",
         "GET  /api/dishes/:slug",
         "GET  /api/dishes/:id/similar",
         "GET  /api/catalog/facets",
