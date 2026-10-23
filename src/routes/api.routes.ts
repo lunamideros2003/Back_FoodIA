@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { asyncRoute, HttpError } from "../middleware/error.ts";
+import { requireAuthUser } from "../middleware/auth.ts";
 import { getDb } from "../db/connection.ts";
 import { recommend } from "../services/recommendationService.ts";
 import { createUser, getUser, updatePreferences, getAllUsers } from "../services/userService.ts";
@@ -475,6 +476,7 @@ router.get("/users/:id", (req, res) => {
 
 router.patch("/users/:id/preferences", (req, res) => {
   const id = Number(req.params.id);
+  requireAuthUser(req, id);
   const patch = preferencesSchema.parse(req.body);
   const user = updatePreferences(id, patch);
   modelStore.retrain();
@@ -483,6 +485,7 @@ router.patch("/users/:id/preferences", (req, res) => {
 
 router.get("/users/:id/interactions", (req, res) => {
   const id = Number(req.params.id);
+  requireAuthUser(req, id);
   if (!getUser(id)) throw new HttpError(404, "Usuario no encontrado.");
   const limit = Math.min(100, Math.max(1, Number(req.query.limit ?? 30)));
   res.json({ items: getInteractionHistory(id, limit) });
@@ -490,12 +493,14 @@ router.get("/users/:id/interactions", (req, res) => {
 
 router.get("/users/:id/taste", (req, res) => {
   const id = Number(req.params.id);
+  requireAuthUser(req, id);
   if (!getUser(id)) throw new HttpError(404, "Usuario no encontrado.");
   res.json(summarizeTaste(id));
 });
 
 router.get("/users/:id/sessions", (req, res) => {
   const id = Number(req.params.id);
+  requireAuthUser(req, id);
   if (!getUser(id)) throw new HttpError(404, "Usuario no encontrado.");
   res.json({ items: listRecentSessions(id, 10) });
 });
@@ -508,6 +513,7 @@ router.post(
   "/recommendations",
   asyncRoute(async (req, res) => {
     const body = recommendationSchema.parse(req.body);
+    if (body.userId) requireAuthUser(req, body.userId);
     const response = await recommend({
       moodKey: body.moodKey,
       userId: body.userId,
@@ -551,6 +557,7 @@ router.post(
  */
 router.post("/balance", (req, res) => {
   const body = balanceSchema.parse(req.body);
+  requireAuthUser(req, body.userId);
   const user = getUser(body.userId);
   if (!user) throw new HttpError(404, "Usuario no encontrado.");
 
@@ -573,6 +580,7 @@ router.post("/balance", (req, res) => {
 /** Preview the balance without committing anything, used on page load. */
 router.get("/balance", (req, res) => {
   const userId = Number(req.query.userId);
+  requireAuthUser(req, userId);
   if (!getUser(userId)) throw new HttpError(404, "Usuario no encontrado.");
 
   const moodKey = req.query.moodKey as MoodKey | undefined;
@@ -595,6 +603,7 @@ router.get("/health-conditions", (_req, res) => {
 
 router.put("/users/:id/health", (req, res) => {
   const id = Number(req.params.id);
+  requireAuthUser(req, id);
   const body = healthProfileSchema.parse(req.body);
   if (!getUser(id)) throw new HttpError(404, "Usuario no encontrado.");
 
@@ -614,6 +623,7 @@ router.put("/users/:id/health", (req, res) => {
 /** Explains, per condition, exactly which dishes get filtered out. */
 router.get("/users/:id/health-report", (req, res) => {
   const id = Number(req.params.id);
+  requireAuthUser(req, id);
   const user = getUser(id);
   if (!user) throw new HttpError(404, "Usuario no encontrado.");
 
@@ -657,6 +667,7 @@ router.get("/interactions", (req, res) => {
 
 router.post("/interactions", (req, res) => {
   const body = interactionSchema.parse(req.body);
+  requireAuthUser(req, body.userId);
   if (!getUser(body.userId)) throw new HttpError(404, "Usuario no encontrado.");
   const created = recordInteraction(body);
   res.status(201).json(created);
@@ -665,6 +676,7 @@ router.post("/interactions", (req, res) => {
 /** Marks a dish as eaten, which feeds the nutritional balance step. */
 router.post("/users/:id/consumed", (req, res) => {
   const id = Number(req.params.id);
+  requireAuthUser(req, id);
   if (!getUser(id)) throw new HttpError(404, "Usuario no encontrado.");
 
   const body = z

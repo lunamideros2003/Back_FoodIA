@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 import { HttpError } from "./error.ts";
 import { resolveSession } from "../services/authService.ts";
+import { findUserById } from "../services/repositories.ts";
 import type { User } from "../domain/types.ts";
 
 declare global {
@@ -53,6 +54,8 @@ export function requireAuthUser(
     throw new HttpError(401, "Necesitas iniciar sesión para hacer eso.");
   }
   if (user.id !== userId) {
+    // Say nothing about whether the profile exists: keep one status per case.
+    if (!findUserById(userId)) throw new HttpError(404, "Perfil no encontrado.");
     throw new HttpError(403, "Solo puedes usar tu propio perfil.");
   }
   return user;

@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { HttpError } from "../middleware/error.ts";
+import { requireAuthUser } from "../middleware/auth.ts";
 import { findUserById, listDishes } from "../services/repositories.ts";
 import {
   clearRecipeEntries,
@@ -33,7 +34,8 @@ const historyQuerySchema = z.object({
   offset: z.coerce.number().int().min(0).max(1000).optional(),
 });
 
-function requireUser(userId: number) {
+function requireUser(req: import("express").Request, userId: number) {
+  requireAuthUser(req, userId);
   const user = findUserById(userId);
   if (!user) throw new HttpError(404, "Usuario no encontrado.");
   return user;
@@ -50,7 +52,7 @@ function requireDish(dishId: number) {
  */
 historyRouter.get("/users/:id/history", (req, res) => {
   const id = Number(req.params.id);
-  requireUser(id);
+  requireUser(req, id);
 
   const query = historyQuerySchema.parse(req.query);
   const all = listRecipeEntries(id, query.status ? { status: query.status } : {});
@@ -72,7 +74,7 @@ historyRouter.get("/users/:id/history", (req, res) => {
 /** Marks a recipe as viewed or as prepared, with the optional notes. */
 historyRouter.post("/users/:id/history", (req, res) => {
   const id = Number(req.params.id);
-  requireUser(id);
+  requireUser(req, id);
 
   const body = entrySchema.parse(req.body);
   requireDish(body.dishId);
@@ -93,7 +95,7 @@ historyRouter.post("/users/:id/history", (req, res) => {
  */
 historyRouter.patch("/users/:id/history/:dishId", (req, res) => {
   const id = Number(req.params.id);
-  requireUser(id);
+  requireUser(req, id);
 
   const dishId = Number(req.params.dishId);
   if (!Number.isInteger(dishId)) {
@@ -118,7 +120,7 @@ historyRouter.patch("/users/:id/history/:dishId", (req, res) => {
 /** Clears the whole trail of a user. The notes go with it. */
 historyRouter.delete("/users/:id/history", (req, res) => {
   const id = Number(req.params.id);
-  requireUser(id);
+  requireUser(req, id);
   const removed = clearRecipeEntries(id);
   res.json({ ok: true, removed });
 });
@@ -126,7 +128,7 @@ historyRouter.delete("/users/:id/history", (req, res) => {
 /** Removes a recipe from the trail. */
 historyRouter.delete("/users/:id/history/:dishId", (req, res) => {
   const id = Number(req.params.id);
-  requireUser(id);
+  requireUser(req, id);
 
   const dishId = Number(req.params.dishId);
   if (!Number.isInteger(dishId)) {

@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { HttpError } from "../middleware/error.ts";
+import { requireAuthUser } from "../middleware/auth.ts";
 import { findUserById, listDishes } from "../services/repositories.ts";
 import {
   addFavorite,
@@ -18,7 +19,8 @@ const favoriteSchema = z.object({
   dishId: z.number().int().positive(),
 });
 
-function requireUser(userId: number) {
+function requireUser(req: import("express").Request, userId: number) {
+  requireAuthUser(req, userId);
   const user = findUserById(userId);
   if (!user) throw new HttpError(404, "Usuario no encontrado.");
   return user;
@@ -33,14 +35,14 @@ function requireDish(dishId: number) {
 /** The recipes the user decided to keep. */
 favoritesRouter.get("/users/:id/favorites", (req, res) => {
   const id = Number(req.params.id);
-  requireUser(id);
+  requireUser(req, id);
   res.json({ items: listFavorites(id) });
 });
 
 /** Saves a recipe. Saving the same recipe twice is a no-op. */
 favoritesRouter.post("/users/:id/favorites", (req, res) => {
   const id = Number(req.params.id);
-  requireUser(id);
+  requireUser(req, id);
 
   const body = favoriteSchema.parse(req.body);
   requireDish(body.dishId);
@@ -52,7 +54,7 @@ favoritesRouter.post("/users/:id/favorites", (req, res) => {
 /** Removes a recipe from the favourites. */
 favoritesRouter.delete("/users/:id/favorites/:dishId", (req, res) => {
   const id = Number(req.params.id);
-  requireUser(id);
+  requireUser(req, id);
 
   const dishId = Number(req.params.dishId);
   if (!Number.isInteger(dishId)) {
@@ -66,7 +68,7 @@ favoritesRouter.delete("/users/:id/favorites/:dishId", (req, res) => {
 /** Removes every favourite of a user. It is safe to call it when empty. */
 favoritesRouter.delete("/users/:id/favorites", (req, res) => {
   const id = Number(req.params.id);
-  requireUser(id);
+  requireUser(req, id);
   const removed = clearFavorites(id);
   res.json({ removed, ids: [] });
 });
@@ -77,7 +79,7 @@ favoritesRouter.delete("/users/:id/favorites", (req, res) => {
  */
 favoritesRouter.post("/users/:id/favorites/toggle", (req, res) => {
   const id = Number(req.params.id);
-  requireUser(id);
+  requireUser(req, id);
 
   const body = favoriteSchema.parse(req.body);
   const dish = requireDish(body.dishId);

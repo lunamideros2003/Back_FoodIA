@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { HttpError } from "../middleware/error.ts";
+import { requireAuthUser } from "../middleware/auth.ts";
 import { findUserById } from "../services/repositories.ts";
 import { listFavorites } from "../services/favoriteRepository.ts";
 import {
@@ -17,6 +18,7 @@ export const overviewRouter = Router();
  */
 overviewRouter.get("/users/:id/overview", (req, res) => {
   const id = Number(req.params.id);
+  requireAuthUser(req, id);
   const user = Number.isInteger(id) ? findUserById(id) : null;
   if (!user) throw new HttpError(404, "Usuario no encontrado.");
 

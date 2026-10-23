@@ -1,12 +1,29 @@
 import { after, before, describe, it } from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import type { Server } from "node:http";
-import { createApp } from "../src/app.ts";
+import type { Express } from "express";
+
+// This suite writes real data (favourites, history, sessions), so it runs on a
+// throwaway seeded database instead of the developer's own ./data folder.
+const databaseDir = fs.mkdtempSync(path.join(os.tmpdir(), "foodmood-routes-"));
+process.env.DATABASE_FILE = path.join(databaseDir, "routes.test.sqlite");
 
 let server: Server;
 let base: string;
+// Everything about "my recipes" is owner-scoped now, so the helpers below
+// always act as this registered user.
+let token = "";
+let userId = 0;
 
 before(async () => {
+  const { seed } = (await import("../src/db/seed.ts")) as { seed: () => { dishes: number } };
+  const report = seed();
+  assert.ok(report.dishes > 0, "the catalogue has to exist for the tests");
+
+  const { createApp } = (await import("../src/app.ts")) as { createApp: () => Express };
   const app = createApp();
   await new Promise<void>((resolve) => {
     server = app.listen(0, "127.0.0.1", () => resolve());
@@ -14,20 +31,41 @@ before(async () => {
   const address = server.address();
   assert.ok(address && typeof address === "object");
   base = `http://127.0.0.1:${address.port}/api`;
+
+  const signup = await fetch(`${base}/auth/register`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      email: "routes.tester@example.com",
+      password: "lentejas-con-chorizo",
+      displayName: "Routes Tester",
+    }),
+  });
+  assert.equal(signup.status, 201, "el usuario de prueba debe poder registrarse");
+  const payload = (await signup.json()) as { user: { id: number }; token: string };
+  token = payload.token;
+  userId = payload.user.id;
 });
 
 after(async () => {
   await new Promise<void>((resolve) => server.close(() => resolve()));
+  const { closeDb } = (await import("../src/db/connection.ts")) as { closeDb: () => void };
+  closeDb();
+  fs.rmSync(databaseDir, { recursive: true, force: true });
 });
 
+function authHeaders(): Record<string, string> {
+  return { authorization: `Bearer ${token}` };
+}
+
 async function get(path: string) {
-  return fetch(`${base}${path}`);
+  return fetch(`${base}${path}`, { headers: authHeaders() });
 }
 
 async function post(path: string, body: unknown) {
   return fetch(`${base}${path}`, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", ...authHeaders() },
     body: JSON.stringify(body),
   });
 }
@@ -35,7 +73,7 @@ async function post(path: string, body: unknown) {
 async function put(path: string, body: unknown) {
   return fetch(`${base}${path}`, {
     method: "PUT",
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", ...authHeaders() },
     body: JSON.stringify(body),
   });
 }
@@ -43,13 +81,13 @@ async function put(path: string, body: unknown) {
 async function patch(path: string, body: unknown) {
   return fetch(`${base}${path}`, {
     method: "PATCH",
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", ...authHeaders() },
     body: JSON.stringify(body),
   });
 }
 
 async function del(path: string) {
-  return fetch(`${base}${path}`, { method: "DELETE" });
+  return fetch(`${base}${path}`, { method: "DELETE", headers: authHeaders() });
 }
 
 describe("service routes", () => {
@@ -286,13 +324,13 @@ describe("service routes", () => {
   });
 
   it("gives the home screen a single overview call", async () => {
-    const response = await get("/users/1/overview");
+    const response = await get(`/users/${userId}/overview`);
     assert.equal(response.status, 200);
     const body = (await response.json()) as {
       user: { id: number };
       counts: { favorites: number; prepared: number };
     };
-    assert.equal(body.user.id, 1);
+    assert.equal(body.user.id, userId);
     assert.equal(typeof body.counts.favorites, "number");
     assert.equal(typeof body.counts.prepared, "number");
   });
@@ -303,11 +341,11 @@ describe("service routes", () => {
   });
 
   it("toggles a favourite on and back off", async () => {
-    const before = await post("/users/1/favorites/toggle", { dishId: 37 });
+    const before = await post(`/users/${userId}/favorites/toggle`, { dishId: 37 });
     assert.equal(before.status, 200);
     const first = (await before.json()) as { saved: boolean; ids: number[] };
 
-    const second = await post("/users/1/favorites/toggle", { dishId: 37 });
+    const second = await post(`/users/${userId}/favorites/toggle`, { dishId: 37 });
     assert.equal(second.status, 200);
     const back = (await second.json()) as { saved: boolean };
 
@@ -321,8 +359,6 @@ describe("service routes", () => {
 });
 
 describe("saved recipes routes", () => {
-  const userId = 2;
-
   after(async () => {
     await del(`/users/${userId}/favorites`);
     await del(`/users/${userId}/history`);

@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { HttpError } from "../middleware/error.ts";
+import { requireAuthUser } from "../middleware/auth.ts";
 import { findUserById } from "../services/repositories.ts";
 import {
   clearSavedPreferences,
@@ -23,7 +24,8 @@ const savedSchema = z.object({
     .max(20),
 });
 
-function requireUser(userId: number) {
+function requireUser(req: import("express").Request, userId: number) {
+  requireAuthUser(req, userId);
   const user = findUserById(userId);
   if (!user) throw new HttpError(404, "Usuario no encontrado.");
   return user;
@@ -35,7 +37,7 @@ function requireUser(userId: number) {
  */
 preferencesRouter.get("/users/:id/saved-preferences", (req, res) => {
   const id = Number(req.params.id);
-  requireUser(id);
+  requireUser(req, id);
 
   res.json({
     items: listSavedPreferences(id),
@@ -49,7 +51,7 @@ preferencesRouter.get("/users/:id/saved-preferences", (req, res) => {
 /** Saves the preferences the user accepted. */
 preferencesRouter.put("/users/:id/saved-preferences", (req, res) => {
   const id = Number(req.params.id);
-  requireUser(id);
+  requireUser(req, id);
 
   const body = savedSchema.parse(req.body);
   const items = savePreferences(id, body.items);
@@ -64,7 +66,7 @@ preferencesRouter.put("/users/:id/saved-preferences", (req, res) => {
 /** Removes one saved preference. */
 preferencesRouter.delete("/users/:id/saved-preferences/:key", (req, res) => {
   const id = Number(req.params.id);
-  requireUser(id);
+  requireUser(req, id);
 
   const key = req.params.key;
   const removed = deletePreference(id, key);
@@ -75,7 +77,7 @@ preferencesRouter.delete("/users/:id/saved-preferences/:key", (req, res) => {
 /** Removes every saved preference of the user. */
 preferencesRouter.delete("/users/:id/saved-preferences", (req, res) => {
   const id = Number(req.params.id);
-  requireUser(id);
+  requireUser(req, id);
 
   const removed = clearSavedPreferences(id);
   res.json({ ok: true, removed, items: listSavedPreferences(id) });
