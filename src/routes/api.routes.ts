@@ -261,6 +261,43 @@ router.get("/dishes", (req, res) => {
   });
 });
 
+/** The counts the explore screen needs to build its filters without guessing. */
+router.get("/catalog/facets", (_req, res) => {
+  const dishes = listDishes();
+
+  const tally = <T extends string>(values: T[]): { key: T; count: number }[] => {
+    const counts = new Map<T, number>();
+    for (const value of values) counts.set(value, (counts.get(value) ?? 0) + 1);
+    return [...counts.entries()]
+      .map(([key, count]) => ({ key, count }))
+      .sort((a, b) => b.count - a.count || a.key.localeCompare(b.key, "es"));
+  };
+
+  res.json({
+    total: dishes.length,
+    categories: tally(dishes.map((dish) => dish.category)),
+    difficulties: tally(dishes.map((dish) => dish.difficulty)),
+    diets: {
+      vegetarian: dishes.filter((dish) => dish.isVegetarian).length,
+      vegan: dishes.filter((dish) => dish.isVegan).length,
+    },
+    prepBuckets: [
+      { key: "under_10", label: "10 minutos o menos", maxMinutes: 10 },
+      { key: "under_20", label: "20 minutos o menos", maxMinutes: 20 },
+      { key: "under_30", label: "30 minutos o menos", maxMinutes: 30 },
+      { key: "more_than_30", label: "Más de 30 minutos", maxMinutes: null },
+    ].map((bucket) => ({
+      ...bucket,
+      count: dishes.filter((dish) =>
+        bucket.maxMinutes === null
+          ? dish.prepMinutes > 30
+          : dish.prepMinutes <= bucket.maxMinutes,
+      ).length,
+    })),
+    allergens: tally(dishes.flatMap((dish) => allergensOf(dish))),
+  });
+});
+
 router.get("/dishes/:slug", (req, res) => {
   const dish = findDishBySlug(req.params.slug);
   if (!dish) throw new HttpError(404, "No encontramos ese plato.");

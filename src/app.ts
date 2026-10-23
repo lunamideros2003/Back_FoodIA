@@ -56,6 +56,7 @@ export function createApp(): Express {
         "GET  /api/dishes",
         "GET  /api/dishes/:slug",
         "GET  /api/dishes/:id/similar",
+        "GET  /api/catalog/facets",
         "GET  /api/users",
         "POST /api/users",
         "GET  /api/users/:id",
