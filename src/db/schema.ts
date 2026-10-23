@@ -6,6 +6,7 @@ export function applySchema(db: DatabaseSync): void {
       id           INTEGER PRIMARY KEY AUTOINCREMENT,
       email        TEXT    NOT NULL UNIQUE,
       display_name TEXT    NOT NULL,
+      password_hash TEXT,
       created_at   TEXT    NOT NULL DEFAULT (datetime('now'))
     );
 
@@ -111,6 +112,7 @@ export function applySchema(db: DatabaseSync): void {
   createFavouritesTable(db);
   createRecipeEntriesTable(db);
   createSavedPreferencesTable(db);
+  createAuthSessionsTable(db);
 }
 
 /**
@@ -173,6 +175,23 @@ export function createSavedPreferencesTable(db: DatabaseSync): void {
     );
 
     CREATE INDEX IF NOT EXISTS idx_saved_prefs_user ON saved_preferences(user_id);
+  `);
+}
+
+/**
+ * Login sessions. Only a SHA-256 hash of the token is stored, so a leak of the
+ * database never hands out reusable credentials.
+ */
+export function createAuthSessionsTable(db: DatabaseSync): void {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS auth_sessions (
+      token_hash TEXT PRIMARY KEY,
+      user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      expires_at TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_auth_sessions_user ON auth_sessions(user_id, expires_at);
   `);
 }
 
