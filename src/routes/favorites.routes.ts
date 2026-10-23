@@ -4,6 +4,7 @@ import { HttpError } from "../middleware/error.ts";
 import { findUserById, listDishes } from "../services/repositories.ts";
 import {
   addFavorite,
+  clearFavorites,
   listFavoriteIds,
   listFavorites,
   removeFavorite,
@@ -60,6 +61,14 @@ favoritesRouter.delete("/users/:id/favorites/:dishId", (req, res) => {
 
   const removed = removeFavorite(id, dishId);
   res.json({ saved: false, removed, ids: listFavoriteIds(id) });
+});
+
+/** Removes every favourite of a user. It is safe to call it when empty. */
+favoritesRouter.delete("/users/:id/favorites", (req, res) => {
+  const id = Number(req.params.id);
+  requireUser(id);
+  const removed = clearFavorites(id);
+  res.json({ removed, ids: [] });
 });
 
 /**

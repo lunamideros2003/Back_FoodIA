@@ -3,6 +3,7 @@ import { z } from "zod";
 import { HttpError } from "../middleware/error.ts";
 import { findUserById, listDishes } from "../services/repositories.ts";
 import {
+  clearRecipeEntries,
   countPrepared,
   deleteRecipeEntry,
   listRecipeEntries,
@@ -99,6 +100,14 @@ historyRouter.patch("/users/:id/history/:dishId", (req, res) => {
   });
 
   res.json(entry);
+});
+
+/** Clears the whole trail of a user. The notes go with it. */
+historyRouter.delete("/users/:id/history", (req, res) => {
+  const id = Number(req.params.id);
+  requireUser(id);
+  const removed = clearRecipeEntries(id);
+  res.json({ ok: true, removed });
 });
 
 /** Removes a recipe from the trail. */
