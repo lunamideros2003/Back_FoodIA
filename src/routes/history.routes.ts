@@ -27,6 +27,12 @@ const patchSchema = z.object({
   feelingNote: z.string().max(500).nullish(),
 });
 
+const historyQuerySchema = z.object({
+  status: z.enum(["viewed", "prepared"]).optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
+  offset: z.coerce.number().int().min(0).max(1000).optional(),
+});
+
 function requireUser(userId: number) {
   const user = findUserById(userId);
   if (!user) throw new HttpError(404, "Usuario no encontrado.");
@@ -46,12 +52,19 @@ historyRouter.get("/users/:id/history", (req, res) => {
   const id = Number(req.params.id);
   requireUser(id);
 
-  const status = req.query.status;
-  const filter: { status?: "viewed" | "prepared" } =
-    status === "viewed" || status === "prepared" ? { status } : {};
+  const query = historyQuerySchema.parse(req.query);
+  const all = listRecipeEntries(id, query.status ? { status: query.status } : {});
+  const total = all.length;
+  const offset = query.offset ?? 0;
+  let items = all;
+  if (offset > 0) items = items.slice(offset);
+  if (query.limit) items = items.slice(0, query.limit);
 
   res.json({
-    items: listRecipeEntries(id, filter ?? {}),
+    items,
+    total,
+    offset,
+    limit: query.limit ?? null,
     prepared: countPrepared(id),
   });
 });
