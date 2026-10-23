@@ -17,8 +17,6 @@ import { modelStore } from "./services/modelStore.ts";
 export function createApp(): Express {
   const app = express();
 
-  app.use(authToRequest);
-
   app.use(
     cors({
       origin(origin, callback) {
@@ -45,6 +43,15 @@ export function createApp(): Express {
   );
 
   app.use(express.json({ limit: "256kb" }));
+
+  app.use(
+    "/api/auth",
+    rateLimit({
+      windowMs: 60_000,
+      max: 15,
+      message: "Demasiados intentos de acceso. Espera un momento y vuelve a intentarlo.",
+    }),
+  );
 
   // The endpoints that may reach a model provider get a tighter limit than
   // the rest of the catalogue, which is cheap to serve.
@@ -105,8 +112,6 @@ export function createApp(): Express {
     });
   });
 
-  app.use(authToRequest);
-  app.use("/api/auth", rateLimit({ windowMs: 60_000, max: 20 }));
   app.use("/api", router);
   app.use("/api", favoritesRouter);
   app.use("/api", historyRouter);
