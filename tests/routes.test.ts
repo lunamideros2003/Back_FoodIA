@@ -188,6 +188,37 @@ describe("service routes", () => {
     assert.equal(response.status, 404);
   });
 
+  it("returns the safety warnings of a recipe", async () => {
+    const response = await get("/recipes/huevos-rancheros/safety");
+    assert.equal(response.status, 200);
+    const body = (await response.json()) as {
+      notes: { id: string }[];
+      general: { id: string };
+      allergens: string[];
+    };
+    assert.ok(body.notes.some((note) => note.id === "eggs"));
+    assert.equal(body.general.id, "general");
+    assert.ok(body.allergens.includes("Huevo"));
+  });
+
+  it("surprises with a recipe that respects the filters", async () => {
+    const response = await get("/dishes/random?difficulty=facil&maxPrepMinutes=10");
+    assert.equal(response.status, 200);
+    const body = (await response.json()) as {
+      dish: { difficulty: string; prepMinutes: number };
+      total: number;
+    };
+    assert.equal(body.dish.difficulty, "facil");
+    assert.ok(body.dish.prepMinutes <= 10);
+    assert.ok(body.total > 0);
+  });
+
+  it("returns 404 when the surprise filters leave nothing", async () => {
+    const response = await get("/dishes/random?maxPrepMinutes=1");
+    assert.equal(response.status, 404);
+  });
+
+
   it("discovers recipes by ingredients and rejects an empty list", async () => {
     const ok = await post("/discover/by-ingredients", {
       ingredients: ["huevo", "tortilla"],
