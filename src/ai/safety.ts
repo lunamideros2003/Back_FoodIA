@@ -148,7 +148,7 @@ export function safetyNotesForStep(dish: Dish, stepIndex: number): SafetyNote[] 
   if (text.includes("hierve") || text.includes("hervir") || text.includes("cocina")) {
     stepNotes.push({
       id: "heat-step",
-      text: "Al hervir no te awayes: el fuego puede pasarse en segundos.",
+      text: "Al hervir no te alejes: el fuego puede pasarse en segundos.",
       stepIndex,
     });
   }
