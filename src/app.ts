@@ -85,6 +85,7 @@ export function createApp(): Express {
         "DELETE /api/users/:id/saved-preferences/:key",
         "GET  /api/users/:id/overview",
         "GET  /api/recipes/:slug/allergens",
+        "GET  /api/recipes/:slug/safety",
         "POST /api/recipes/:slug/assistant",
         "POST /api/recipes/:slug/substitute",
         "POST /api/recipes/:slug/adapt",

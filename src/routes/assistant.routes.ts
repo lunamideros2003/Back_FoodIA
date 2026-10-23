@@ -3,6 +3,7 @@ import { z } from "zod";
 import { HttpError } from "../middleware/error.ts";
 import { findDishBySlug, findUserById } from "../services/repositories.ts";
 import { allergensOf } from "../ai/allergens.ts";
+import { GENERAL_SAFETY_NOTE, safetyNotesForDish } from "../ai/safety.ts";
 import { answerAssistantQuestion } from "../ai/assistant.ts";
 import { findSubstitutionsFor } from "../db/seed/dietary.ts";
 import { adaptRecipe } from "../services/adaptationService.ts";
@@ -52,6 +53,18 @@ assistantRouter.get("/recipes/:slug/allergens", (req, res) => {
     containsGluten: dish.containsGluten,
     isVegetarian: dish.isVegetarian,
     isVegan: dish.isVegan,
+  });
+});
+
+/** The kitchen warnings for a recipe, ready to show above the steps. */
+assistantRouter.get("/recipes/:slug/safety", (req, res) => {
+  const dish = requireDish(req.params.slug);
+  res.json({
+    slug: dish.slug,
+    nameEs: dish.nameEs,
+    notes: safetyNotesForDish(dish),
+    general: GENERAL_SAFETY_NOTE,
+    allergens: allergensOf(dish),
   });
 });
 
