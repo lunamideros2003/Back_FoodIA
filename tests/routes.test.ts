@@ -32,6 +32,26 @@ async function post(path: string, body: unknown) {
   });
 }
 
+async function put(path: string, body: unknown) {
+  return fetch(`${base}${path}`, {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+async function patch(path: string, body: unknown) {
+  return fetch(`${base}${path}`, {
+    method: "PATCH",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+async function del(path: string) {
+  return fetch(`${base}${path}`, { method: "DELETE" });
+}
+
 describe("service routes", () => {
   it("answers the health check", async () => {
     const response = await get("/health");
@@ -245,5 +265,108 @@ describe("service routes", () => {
   it("returns a validation error for a bad recommendation request", async () => {
     const response = await post("/recommendations", { moodKey: "nope" });
     assert.equal(response.status, 400);
+  });
+});
+
+describe("saved recipes routes", () => {
+  const userId = 2;
+
+  after(async () => {
+    await del(`/users/${userId}/favorites`);
+    await del(`/users/${userId}/history`);
+    await del(`/users/${userId}/saved-preferences`);
+  });
+
+  it("saves, lists and removes a favourite", async () => {
+    const added = await post(`/users/${userId}/favorites`, { dishId: 12 });
+    assert.equal(added.status, 201);
+
+    const list = await get(`/users/${userId}/favorites`);
+    const body = (await list.json()) as { items: { dishId: number }[] };
+    assert.ok(body.items.some((item) => item.dishId === 12));
+
+    const removed = await del(`/users/${userId}/favorites/12`);
+    assert.equal(removed.status, 200);
+    const afterRemove = (await removed.json()) as { removed: boolean };
+    assert.equal(afterRemove.removed, true);
+  });
+
+  it("clears every favourite at once", async () => {
+    await post(`/users/${userId}/favorites`, { dishId: 13 });
+    await post(`/users/${userId}/favorites`, { dishId: 14 });
+
+    const cleared = await del(`/users/${userId}/favorites`);
+    const body = (await cleared.json()) as { removed: number };
+    assert.equal(body.removed, 2);
+
+    const list = await get(`/users/${userId}/favorites`);
+    const after = (await list.json()) as { items: unknown[] };
+    assert.equal(after.items.length, 0);
+  });
+
+  it("records a prepared recipe with a note and reads it back", async () => {
+    const saved = await post(`/users/${userId}/history`, {
+      dishId: 12,
+      status: "prepared",
+      rating: 4,
+      note: "Quedó muy bien",
+      feelingNote: "Se sintió como un domingo",
+    });
+    assert.equal(saved.status, 201);
+
+    const list = await get(`/users/${userId}/history?status=prepared`);
+    assert.equal(list.status, 200);
+    const body = (await list.json()) as {
+      items: { dishId: number; note: string; rating: number }[];
+      prepared: number;
+    };
+    const entry = body.items.find((item) => item.dishId === 12);
+    assert.ok(entry);
+    assert.equal(entry.note, "Quedó muy bien");
+    assert.equal(entry.rating, 4);
+    assert.equal(body.prepared, 1);
+  });
+
+  it("updates the rating of an entry without losing the note", async () => {
+    const updated = await patch(`/users/${userId}/history/12`, { rating: 5 });
+    assert.equal(updated.status, 200);
+    const body = (await updated.json()) as { rating: number; note: string };
+    assert.equal(body.rating, 5);
+    assert.equal(body.note, "Quedó muy bien");
+  });
+
+  it("deletes one entry and then clears the trail", async () => {
+    await post(`/users/${userId}/history`, { dishId: 13, status: "viewed" });
+
+    const removed = await del(`/users/${userId}/history/13`);
+    const body = (await removed.json()) as { removed: boolean };
+    assert.equal(body.removed, true);
+
+    const cleared = await del(`/users/${userId}/history`);
+    const clearedBody = (await cleared.json()) as { removed: number };
+    assert.ok(clearedBody.removed >= 1);
+  });
+
+  it("saves a preference the app knows and rejects one it does not", async () => {
+    const response = await put(`/users/${userId}/saved-preferences`, {
+      items: [
+        { key: "vegetarian", value: "true" },
+        { key: "notAKey", value: "x" },
+      ],
+    });
+
+    assert.equal(response.status, 200);
+    const body = (await response.json()) as {
+      items: { key: string }[];
+      saved: number;
+      rejected: number;
+    };
+    assert.equal(body.saved, 1);
+    assert.equal(body.rejected, 1);
+    assert.ok(body.items.some((item) => item.key === "vegetarian"));
+
+    const removed = await del(`/users/${userId}/saved-preferences/vegetarian`);
+    const removedBody = (await removed.json()) as { removed: boolean };
+    assert.equal(removedBody.removed, true);
   });
 });
