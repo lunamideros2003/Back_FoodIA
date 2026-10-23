@@ -99,6 +99,24 @@ describe("service routes", () => {
     assert.ok(body.allergens.includes("Huevo"));
   });
 
+  it("gives the recipe page its allergens, safety notes and substitutions", async () => {
+    const response = await get("/dishes/huevos-rancheros");
+    assert.equal(response.status, 200);
+    const body = (await response.json()) as {
+      dish: { slug: string };
+      allergens: { key: string; label: string }[];
+      safetyNotes: unknown[];
+      substitutions: unknown[];
+      similar: unknown[];
+    };
+
+    assert.equal(body.dish.slug, "huevos-rancheros");
+    assert.ok(body.allergens.some((allergen) => allergen.key === "Huevo"));
+    assert.ok(body.safetyNotes.length > 0);
+    assert.ok(body.substitutions.length > 0);
+    assert.ok(Array.isArray(body.similar));
+  });
+
   it("returns 404 for a recipe that does not exist", async () => {
     const response = await get("/recipes/no-existe/allergens");
     assert.equal(response.status, 404);
