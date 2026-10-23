@@ -153,7 +153,15 @@ export function safetyNotesForStep(dish: Dish, stepIndex: number): SafetyNote[] 
     });
   }
 
-  return stepNotes.length > 0 ? stepNotes : notes.filter((note) => note.stepIndex === stepIndex);
+  if (stepNotes.length > 0) return stepNotes;
+
+  const stepSpecific = notes.filter((note) => note.stepIndex === stepIndex);
+  if (stepSpecific.length > 0) return stepSpecific;
+
+  // A step without its own warning still travels with the warnings of the
+  // recipe: somebody cooking eggs has to know about cooking them through even
+  // when the current instruction is only about the salsa.
+  return notes;
 }
 
 /**

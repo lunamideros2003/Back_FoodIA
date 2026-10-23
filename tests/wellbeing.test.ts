@@ -62,6 +62,15 @@ describe("safety notes", () => {
     for (const note of notes) assert.equal(note.stepIndex, index);
   });
 
+  it("falls back to the recipe warnings when the step has none of its own", () => {
+    const dish = bySlug("huevos-rancheros");
+    const serving = dish.steps.findIndex((step) => /sirve/i.test(step));
+    assert.ok(serving >= 0, "La receta debe tener un paso de servir");
+
+    const notes = safetyNotesForStep(dish, serving);
+    assert.ok(ids(notes).includes("eggs"));
+  });
+
   it("returns an empty list for a step that does not exist", () => {
     assert.deepEqual(safetyNotesForStep(bySlug("huevos-rancheros"), 99), []);
   });
