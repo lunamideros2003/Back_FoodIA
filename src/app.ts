@@ -10,11 +10,14 @@ import { questionnaireRouter } from "./routes/questionnaire.routes.ts";
 import { discoveryRouter } from "./routes/discovery.routes.ts";
 import { overviewRouter } from "./routes/overview.routes.ts";
 import { errorHandler, notFoundHandler } from "./middleware/error.ts";
+import { authToRequest } from "./middleware/auth.ts";
 import { rateLimit } from "./middleware/rateLimit.ts";
 import { modelStore } from "./services/modelStore.ts";
 
 export function createApp(): Express {
   const app = express();
+
+  app.use(authToRequest);
 
   app.use(
     cors({
@@ -102,6 +105,8 @@ export function createApp(): Express {
     });
   });
 
+  app.use(authToRequest);
+  app.use("/api/auth", rateLimit({ windowMs: 60_000, max: 20 }));
   app.use("/api", router);
   app.use("/api", favoritesRouter);
   app.use("/api", historyRouter);

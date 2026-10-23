@@ -8,6 +8,9 @@ declare global {
   // Res.locals.user is the only state this middleware adds.
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
+    interface Request {
+      user?: User;
+    }
     interface Locals {
       user: User;
     }
@@ -18,6 +21,14 @@ export function bearerToken(req: Request): string | null {
   const header = req.headers.authorization ?? "";
   if (!header.startsWith("Bearer ") || header.length <= "Bearer ".length) return null;
   return header.slice("Bearer ".length);
+}
+
+export function authToRequest(req: Request, _res: Response, next: NextFunction): void {
+  const user = resolveSession(bearerToken(req));
+  if (user) {
+    req.user = user;
+  }
+  next();
 }
 
 export function requireAuth(req: Request, res: Response, next: NextFunction): void {
