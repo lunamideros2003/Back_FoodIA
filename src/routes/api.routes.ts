@@ -26,6 +26,9 @@ import {
 } from "../services/repositories.ts";
 import { modelStore } from "../services/modelStore.ts";
 import { env } from "../config/env.ts";
+import { allergensOf, ALLERGEN_LABELS_ES } from "../ai/allergens.ts";
+import { GENERAL_SAFETY_NOTE, safetyNotesForDish } from "../ai/safety.ts";
+import { findSubstitutionsFor } from "../db/seed/dietary.ts";
 import type { Dish, MoodKey } from "../domain/types.ts";
 
 export const router = Router();
@@ -228,7 +231,29 @@ router.get("/dishes", (req, res) => {
 router.get("/dishes/:slug", (req, res) => {
   const dish = findDishBySlug(req.params.slug);
   if (!dish) throw new HttpError(404, "No encontramos ese plato.");
-  res.json({ dish, similar: findSimilar(dish, 5) });
+
+  // Everything the recipe page needs to be honest in one response: what it
+  // contains, what to be careful about and which ingredients can be replaced.
+  const allergens = allergensOf(dish).map((allergen) => ({
+    key: allergen,
+    label: ALLERGEN_LABELS_ES[allergen] ?? allergen,
+  }));
+  const substitutions = [
+    ...new Map(
+      dish.ingredients
+        .flatMap((item) => findSubstitutionsFor(item.label))
+        .map((option) => [`${option.original}|${option.replacement}`, option]),
+    ).values(),
+  ];
+
+  res.json({
+    dish,
+    similar: findSimilar(dish, 5),
+    allergens,
+    safetyNotes: safetyNotesForDish(dish),
+    generalSafetyNote: GENERAL_SAFETY_NOTE,
+    substitutions,
+  });
 });
 
 /**
