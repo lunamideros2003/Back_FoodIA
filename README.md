@@ -225,6 +225,23 @@ Cada eje tiene una frase en español ya escrita (`"se siente como un abrazo"`, `
 así que la oración sale bien gramatizada sea cual sea el número del modelo. No se arma con
 plantillas de adjetivos, que es donde estos sistemas suelen romperse.
 
+
+## Cuentas y sesiones
+
+Las cuentas de personas reales usan correo y contraseña:
+
+- `POST /api/auth/register` crea la cuenta (hash scrypt + sal aleatoria) y entrega un token de sesión.
+- `POST /api/auth/login` entrega otro token; la sesión vive un mes en la tabla `auth_sessions` (hash SHA-256 del token, nunca el token).
+- `GET /api/auth/me` dice quién es el titular; `POST /api/auth/logout` cierra la sesión actual.
+- Todo lo que pertenece a una persona (favoritos, historial, preferencias, health-report, balance, consumo) exige su propio bearer token: otra sesión recibe 403 y un perfil que no existe, 404.
+- `GET/POST /api/users` y el catálogo siguen abiertos: son datos públicos y perfiles de demostración.
+
+La zona de autenticación tiene su propio rate limit (30 intentos por minuto por IP).
+
+### Proveedor de IA
+
+El narrador de recomendaciones y el asistente de cocina aceptan dos proveedores con el mismo protocolo chat-completions: `AI_PROVIDER=openai` y `AI_PROVIDER=groq` (Groq tiene capa gratuita y es OpenAI-compatible). Cada proveedor trae su endpoint y su modelo por defecto, y si no hay llave o falla la llamada, el texto local determinístico responde igual (`local-model`).
+
 ## Variables de entorno
 
 Copia `.env.example` a `.env`. Todo tiene valores por defecto y funciona sin tocar nada.
