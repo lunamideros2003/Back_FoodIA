@@ -242,6 +242,21 @@ La zona de autenticación tiene su propio rate limit (30 intentos por minuto por
 
 El narrador de recomendaciones y el asistente de cocina aceptan dos proveedores con el mismo protocolo chat-completions: `AI_PROVIDER=openai` y `AI_PROVIDER=groq` (Groq tiene capa gratuita y es OpenAI-compatible). Cada proveedor trae su endpoint y su modelo por defecto, y si no hay llave o falla la llamada, el texto local determinístico responde igual (`local-model`).
 
+### gRPC
+
+El backend también habla gRPC nativo (HTTP/2 + protobuf) en su propio puerto, sin tocar la API REST:
+
+- Contrato: `grpc/foodmood.proto`, paquete `foodmood.v1`, servicio `FoodMoodStatus` con dos llamadas unarias: `GetStatus` (servicio, versión, proveedor de IA, uptime y tamaño del catálogo) y `GetDish` (un plato por id; `NOT_FOUND` si no existe).
+- Servidor: `@grpc/grpc-js` carga el `.proto` al arrancar (sin código generado que se desincronice) y escucha en `GRPC_PORT` (4002 por defecto; `0` apaga la capa). Los handlers viven en `src/grpc/service.ts` y son los mismos que usa el puente web.
+- Cliente de demostración: `npm run grpc:probe` llama a las dos RPC y muestra las respuestas y el código 5 del plato inexistente.
+
+```bash
+npm run grpc:probe
+```
+
+- Puente para el navegador: `POST /api/grpc/foodmood.v1.FoodMoodStatus/GetStatus` y `.../GetDish` hablan gRPC-Web sobre HTTP/1.1 (`application/grpc-web+proto`, y también la variante `-text` en base64), así el frontend consume el mismo contrato sin Envoy. Los trailers viajan como frame `0x80` con `grpc-status`.
+- Si el puerto gRPC está ocupado, la API REST sigue funcionando: solo se pierde esa capa.
+
 ## Variables de entorno
 
 Copia `.env.example` a `.env`. Todo tiene valores por defecto y funciona sin tocar nada.
@@ -250,6 +265,9 @@ Copia `.env.example` a `.env`. Todo tiene valores por defecto y funciona sin toc
 PORT=4000
 DATABASE_FILE=./data/foodmood.db
 CORS_ORIGIN=http://localhost:5173,http://127.0.0.1:5173
+
+# gRPC nativo en su propio puerto; 0 apaga la capa
+GRPC_PORT=4002
 
 # local = sin internet y sin costo (default)
 # openai = añade un LLM para la explicación, con respaldo automático al local
