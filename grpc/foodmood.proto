@@ -1,0 +1,39 @@
+// Contract of the FoodMood gRPC layer. Kept deliberately small and read-only:
+// the REST API stays the front door; gRPC exposes the pieces an integrator or
+// a teacher's grader wants to see speak pure HTTP/2 + protobuf.
+syntax = "proto3";
+
+package foodmood.v1;
+
+service FoodMoodStatus {
+  /** Server identity, model version and catalogue size in a single call. */
+  rpc GetStatus (StatusRequest) returns (StatusReply);
+
+  /** One dish by its catalogue id, without any user context. */
+  rpc GetDish (DishRequest) returns (DishReply);
+}
+
+message StatusRequest {}
+
+message StatusReply {
+  string service = 1;         // "foodmood-ia-backend"
+  string version = 2;         // model version, e.g. "foodmood-1.4.0"
+  string ai_provider = 3;     // "local" | "openai" | "groq"
+  uint64 uptime_seconds = 4;
+  uint32 dishes = 5;          // catalogue size
+  uint32 moods = 6;           // mood taxonomy size
+}
+
+message DishRequest {
+  int32 id = 1;
+}
+
+message DishReply {
+  int32 id = 1;
+  string slug = 2;
+  string name_es = 3;
+  string category = 4;
+  uint32 prep_minutes = 5;
+  uint32 calories = 6;
+  string difficulty = 7;
+}
