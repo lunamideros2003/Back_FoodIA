@@ -3,6 +3,7 @@ import { env, isProduction } from "./config/env.ts";
 import { closeDb } from "./db/connection.ts";
 import { modelStore } from "./services/modelStore.ts";
 import { WARNINGS } from "./deployChecks.ts";
+import { startGrpcServer, stopGrpcServer } from "./grpc/server.ts";
 
 const app = createApp();
 
@@ -11,6 +12,7 @@ const server = app.listen(env.port, () => {
   console.log("");
   console.log("  FoodMood IA · API de recomendaciones");
   console.log(`  → http://localhost:${env.port}/api/health`);
+  console.log(`  → grpc://localhost:${env.grpcPort} (FoodMoodStatus)`);
   console.log(`  → Base de datos: ${env.databaseFile}`);
   console.log(
     `  → Modelo ${stats.version} | ${stats.dishes} platos | ${stats.observations} observaciones | ${stats.trainingMs} ms`,
@@ -61,9 +63,21 @@ function handleListenError(error: NodeJS.ErrnoException): void {
 
 server.on("error", handleListenError);
 
+// gRPC lives on its own port and never blocks the REST API: if the port is
+// taken the HTTP server keeps serving and only the gRPC line goes silent.
+void (env.grpcPort === 0
+  ? Promise.resolve(0)
+  : startGrpcServer(env.grpcPort)
+).then((port) => {
+  if (port > 0) console.log(`  → Capa gRPC activa en ${port}`);
+}).catch((error: Error) => {
+  console.warn(`  ! gRPC no pudo arrancar: ${error.message}`);
+});
+
 function shutdown(signal: string): void {
   console.log(`\n[server] ${signal} recibido, cerrando...`);
   server.close(() => {
+    void stopGrpcServer();
     closeDb();
     process.exit(0);
   });

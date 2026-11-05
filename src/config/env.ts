@@ -50,6 +50,8 @@ export const env = {
     /** How long the cooking assistant waits before falling back. */
     assistantTimeoutMs: toInt(process.env.AI_ASSISTANT_TIMEOUT_MS, 9000),
   },
+  /** Native gRPC (HTTP/2) endpoint; 0 disables the layer entirely. */
+  grpcPort: process.env.GRPC_PORT === "0" ? 0 : toInt(process.env.GRPC_PORT, 4002),
   recentInteractionLimit: toInt(process.env.RECENT_INTERACTION_LIMIT, 40),
 };
 
