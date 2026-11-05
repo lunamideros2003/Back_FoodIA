@@ -10,6 +10,7 @@
     "start": "node --experimental-strip-types src/server.ts",
     "seed": "node --experimental-strip-types src/db/seed.ts",
     "typecheck": "tsc --noEmit",
+    "grpc:probe": "node --experimental-strip-types scripts/grpc-probe.ts",
     "test": "node --experimental-strip-types --test tests/*.test.ts"
   },
   "engines": {
