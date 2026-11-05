@@ -1,5 +1,4 @@
-import { process } from "node:process";
-import type { Server as GrpcServer, ServiceDefinition } from "@grpc/grpc-js";
+import type { ServerUnaryCall, sendUnaryData, ServiceDefinition } from "@grpc/grpc-js";
 import { listDishes, listMoods } from "../services/repositories.ts";
 import { env } from "../config/env.ts";
 import { modelStore } from "../services/modelStore.ts";
@@ -9,41 +8,45 @@ import { modelStore } from "../services/modelStore.ts";
  * Kept out of the user data: this service is public by design (the REST
  * equivalent is GET /api/health) and must never leak recipe internals.
  */
-export function statusReply(): {
+export interface StatusReply {
   service: string;
   version: string;
-  ai_provider: string;
-  uptime_seconds: number;
+  aiProvider: string;
+  uptimeSeconds: number;
   dishes: number;
   moods: number;
-} {
+}
+
+export function statusReply(): StatusReply {
   return {
     service: "foodmood-ia-backend",
     version: modelStore.version,
-    ai_provider: env.ai.provider,
-    uptime_seconds: Math.max(0, Math.floor(process.uptime())),
+    aiProvider: env.ai.provider,
+    uptimeSeconds: Math.max(0, Math.floor(process.uptime())),
     dishes: listDishes().length,
     moods: listMoods().length,
   };
 }
 
-export function dishReply(id: number): {
+export interface DishReply {
   id: number;
   slug: string;
-  name_es: string;
+  nameEs: string;
   category: string;
-  prep_minutes: number;
+  prepMinutes: number;
   calories: number;
   difficulty: string;
-} | null {
+}
+
+export function dishReply(id: number): DishReply | null {
   const dish = listDishes().find((candidate) => candidate.id === id);
   if (!dish) return null;
   return {
     id: dish.id,
     slug: dish.slug,
-    name_es: dish.nameEs,
+    nameEs: dish.nameEs,
     category: dish.category,
-    prep_minutes: dish.prepMinutes,
+    prepMinutes: dish.prepMinutes,
     calories: dish.calories,
     difficulty: dish.difficulty,
   };
@@ -52,15 +55,20 @@ export function dishReply(id: number): {
 /**
  * The service definition shared by the gRPC server and the gRPC-Web bridge:
  * one source of behaviour so the two transports can never drift apart.
+ * Typed loosely because there is no generated code; proto-loader keeps the
+ * runtime shape and the .proto stays the single contract.
  */
-export function foodMoodDefinition(): ServiceDefinition {
+export function foodMoodDefinition(): Record<string, unknown> {
   return {
-    GetStatus: (_call: unknown, callback: (error: null, response: unknown) => void) => {
+    GetStatus: (
+      _call: ServerUnaryCall<Record<string, never>, unknown>,
+      callback: sendUnaryData<unknown>,
+    ) => {
       callback(null, statusReply());
     },
     GetDish: (
-      call: { request: { id?: number } },
-      callback: (error: { code: number; details: string } | null, response?: unknown) => void,
+      call: ServerUnaryCall<{ id?: number }, unknown>,
+      callback: sendUnaryData<unknown>,
     ) => {
       const id = Number(call.request?.id);
       const dish = Number.isInteger(id) ? dishReply(id) : null;
@@ -75,5 +83,7 @@ export function foodMoodDefinition(): ServiceDefinition {
 
 export const GRPC_SERVICE_PATH = "/foodmood.v1.FoodMoodStatus/";
 
-/** Unused today but part of the public contract the server stops cleanly. */
-export type FoodMoodGrpcServer = GrpcServer;
+/** The concrete ServiceDefinition demanded by grpc-js at addService time. */
+export const asGrpcServiceDefinition = (handlers: unknown) =>
+  handlers as ServiceDefinition;
+

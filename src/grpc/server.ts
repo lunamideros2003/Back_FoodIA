@@ -8,10 +8,22 @@ import {
   type Server,
 } from "@grpc/grpc-js";
 import protoLoader from "@grpc/proto-loader";
-import { asGrpcServiceDefinition, foodMoodDefinition } from "./service.ts";
+import { asGrpcServiceDefinition, foodMoodDefinition, type DishReply, type StatusReply } from "./service.ts";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const PROTO_FILE = path.resolve(here, "..", "..", "grpc", "foodmood.proto");
+
+/**
+ * Shared loader options. `longs: Number` keeps uint64 fields (like
+ * uptime_seconds) as plain JavaScript numbers on both sides of the wire
+ * instead of protobufjs Long objects.
+ */
+const LOADER_OPTIONS = {
+  keepCase: false,
+  defaults: true,
+  oneofs: true,
+  longs: Number,
+} as const;
 
 let grpcServer: Server | null = null;
 let grpcPort = 0;
@@ -22,11 +34,7 @@ let grpcPort = 0;
  * its own port so the REST API is untouched.
  */
 export async function startGrpcServer(port: number): Promise<number> {
-  const packageDefinition = protoLoader.loadSync(PROTO_FILE, {
-    keepCase: false,
-    defaults: true,
-    oneofs: true,
-  });
+  const packageDefinition = protoLoader.loadSync(PROTO_FILE, LOADER_OPTIONS);
   const pkg = loadPackageDefinition(packageDefinition) as unknown as {
     foodmood: { v1: { FoodMoodStatus: { service: unknown } } };
   };
@@ -67,28 +75,26 @@ export async function stopGrpcServer(): Promise<void> {
 }
 
 /** A client pointing at the local insecure server; used by tests and scripts. */
-export function createStatusClient(port: number) {
-  const packageDefinition = protoLoader.loadSync(PROTO_FILE, {
-    keepCase: false,
-    defaults: true,
-    oneofs: true,
-  });
+export interface StatusClient {
+  getStatus(request: Record<string, never>, callback: UnaryCallback<StatusReply>): void;
+  getDish(request: { id: number }, callback: UnaryCallback<DishReply>): void;
+  close(): void;
+}
+
+export type UnaryCallback<TReply> = (
+  error: { code?: number; details?: string } | null,
+  response?: TReply,
+) => void;
+
+export function createStatusClient(port: number): StatusClient {
+  const packageDefinition = protoLoader.loadSync(PROTO_FILE, LOADER_OPTIONS);
   const pkg = loadPackageDefinition(packageDefinition) as unknown as {
     foodmood: {
       v1: {
         FoodMoodStatus: new (
           address: string,
           creds: { insecure: () => never },
-        ) => {
-          getStatus: (
-            request: Record<string, never>,
-            callback: (error: unknown, response: unknown) => void,
-          ) => void;
-          getDish: (
-            request: { id: number },
-            callback: (error: unknown, response: unknown) => void,
-          ) => void;
-        };
+        ) => StatusClient;
       };
     };
   };
