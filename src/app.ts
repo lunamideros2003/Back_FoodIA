@@ -10,6 +10,7 @@ import { assistantRouter } from "./routes/assistant.routes.ts";
 import { questionnaireRouter } from "./routes/questionnaire.routes.ts";
 import { discoveryRouter } from "./routes/discovery.routes.ts";
 import { overviewRouter } from "./routes/overview.routes.ts";
+import { grpcWebRouter } from "./routes/grpc-web.routes.ts";
 import { errorHandler, notFoundHandler } from "./middleware/error.ts";
 import { authToRequest } from "./middleware/auth.ts";
 import { rateLimit } from "./middleware/rateLimit.ts";
@@ -111,11 +112,15 @@ export function createApp(): Express {
         "POST /api/recommendations",
         "GET  /api/interactions",
         "POST /api/interactions",
+        "POST /api/grpc/foodmood.v1.FoodMoodStatus/GetStatus",
+        "POST /api/grpc/foodmood.v1.FoodMoodStatus/GetDish",
       ],
     });
   });
 
   app.use("/api/auth", authRouter);
+  // Before the REST router: gRPC-Web paths never collide with REST resources.
+  app.use("/api/grpc", grpcWebRouter);
   app.use("/api", router);
   app.use("/api", favoritesRouter);
   app.use("/api", historyRouter);
