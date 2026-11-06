@@ -25,6 +25,7 @@ interface Method {
 
 let server: Server;
 let base: string;
+let grpcRoot: string;
 let methods: Record<string, Method>;
 
 before(async () => {
@@ -35,6 +36,7 @@ before(async () => {
   const address = server.address();
   assert.ok(address && typeof address === "object");
   base = `http://127.0.0.1:${address.port}/api/grpc/foodmood.v1.FoodMoodStatus`;
+  grpcRoot = `http://127.0.0.1:${address.port}/api/grpc`;
 
   // The contract from the .proto is the independent decoder: if the hand-rolled
   // encoder drifts by one field number, these tests fail.
@@ -103,6 +105,21 @@ async function call(method: string, payload: Uint8Array, options: { text?: boole
 }
 
 describe("gRPC-Web bridge", () => {
+  it("describes the contract without opening the proto", async () => {
+    const response = await fetch(grpcRoot);
+    const body = (await response.json()) as {
+      service: string;
+      methods: { name: string }[];
+    };
+
+    assert.equal(response.status, 200);
+    assert.equal(body.service, "foodmood.v1.FoodMoodStatus");
+    assert.deepEqual(
+      body.methods.map((method) => method.name),
+      ["GetStatus", "GetDish"],
+    );
+  });
+
   it("answers GetStatus over plain HTTP/1.1", async () => {
     const answer = await call("GetStatus", grpcBody(methods.GetStatus.requestSerialize, {}));
 
