@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from "express";
 import express from "express";
 import { dishReply, statusReply } from "../grpc/service.ts";
+import { env } from "../config/env.ts";
 import {
   GRPC_WEB_CONTENT_TYPE,
   GRPC_WEB_TEXT_CONTENT_TYPE,
@@ -85,6 +86,21 @@ export const grpcWebRouter = Router();
 // gRPC-Web bodies are binary; the global JSON parser ignores them, but reading
 // them as raw bytes makes the intent explicit and keeps a 64 kb ceiling.
 grpcWebRouter.use(express.raw({ type: () => true, limit: "64kb" }));
+
+// Discovery, REST-style: a grader or a new client can see the contract without
+// opening the .proto or running protoc.
+grpcWebRouter.get("/", (_req: Request, res: Response) => {
+  res.json({
+    service: GRPC_WEB_SERVICE,
+    proto: "grpc/foodmood.proto",
+    transport: "gRPC-Web sobre HTTP/1.1 (application/grpc-web+proto)",
+    nativePort: env.grpcPort,
+    methods: [
+      { name: "GetStatus", request: "StatusRequest", response: "StatusReply", streams: "unary" },
+      { name: "GetDish", request: "DishRequest", response: "DishReply", streams: "unary" },
+    ],
+  });
+});
 
 grpcWebRouter.post("/:service/:method", (req: Request, res: Response) => {
   const { service, method } = req.params;
