@@ -112,6 +112,16 @@ describe("auth routes", () => {
     assert.ok(body.token);
   });
 
+  it("trims spaces around the email when logging in", async () => {
+    const response = await login({
+      email: "  Auth.Tester@Example.com  ",
+      password: "pan-con-tomate-1",
+    });
+    assert.equal(response.status, 200);
+    const body = (await response.json()) as AuthPayload;
+    assert.equal(body.user?.email, "auth.tester@example.com");
+  });
+
   it("refuses a wrong password without leaking details", async () => {
     const response = await login({
       email: "auth.tester@example.com",
