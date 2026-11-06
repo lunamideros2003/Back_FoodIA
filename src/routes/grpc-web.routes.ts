@@ -26,6 +26,7 @@ import {
 
 export const GRPC_WEB_SERVICE = "foodmood.v1.FoodMoodStatus";
 
+const INVALID_ARGUMENT = 3;
 const NOT_FOUND = 5;
 const UNIMPLEMENTED = 12;
 
@@ -44,7 +45,15 @@ export function callUnary(method: string, request: Uint8Array): UnaryResult {
   }
 
   if (method === "GetDish") {
-    const id = decodeIdRequest(request);
+    let id: number;
+    try {
+      id = decodeIdRequest(request);
+    } catch (error) {
+      return {
+        status: INVALID_ARGUMENT,
+        message: `Petición inválida: ${(error as Error).message}`,
+      };
+    }
     const dish = dishReply(id);
     if (!dish) return { status: NOT_FOUND, message: "El plato no existe." };
     return { status: 0, message: "", payload: encodeDishReply(dish) };
