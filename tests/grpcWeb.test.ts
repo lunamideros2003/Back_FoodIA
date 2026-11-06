@@ -190,4 +190,19 @@ describe("gRPC-Web bridge", () => {
     assert.match(trailers, /grpc-status: 3/);
     assert.match(trailers, /Petici%C3%B3n%20inv%C3%A1lida/);
   });
+
+  it("responde al preflight OPTIONS con los headers CORS de gRPC-Web", async () => {
+    const response = await fetch(`${base}/GetStatus`, {
+      method: "OPTIONS",
+      headers: {
+        "Access-Control-Request-Method": "POST",
+        "Access-Control-Request-Headers": "content-type, x-grpc-web",
+      },
+    });
+
+    assert.equal(response.status, 204);
+    assert.match(response.headers.get("access-control-allow-methods") ?? "", /POST/);
+    assert.match(response.headers.get("access-control-allow-headers") ?? "", /content-type/);
+    assert.match(response.headers.get("access-control-allow-headers") ?? "", /x-grpc-web/);
+  });
 });

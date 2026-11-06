@@ -102,6 +102,16 @@ grpcWebRouter.get("/", (_req: Request, res: Response) => {
   });
 });
 
+// gRPC-Web preflight: los navegadores preguntan antes del POST cross-origin.
+// Responde 204 vacío con los mismos headers que la respuesta real.
+grpcWebRouter.options("/:service/:method", (_req: Request, res: Response) => {
+  res.status(204);
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-User-Agent, X-Grpc-Web");
+  res.setHeader("Access-Control-Max-Age", "86400");
+  res.end();
+});
+
 grpcWebRouter.post("/:service/:method", (req: Request, res: Response) => {
   const { service, method } = req.params;
   const text = isTextMode(req);
