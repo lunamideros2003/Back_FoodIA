@@ -238,6 +238,29 @@ Las cuentas de personas reales usan correo y contraseña:
 
 La zona de autenticación tiene su propio rate limit (30 intentos por minuto por IP).
 
+Ejemplos con `curl`:
+
+```bash
+# Crear cuenta (devuelve token de sesión)
+curl -X POST http://localhost:4000/api/auth/register \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"luna@correo.com","password":"abc12345","displayName":"Luna"}'
+
+# Iniciar sesión
+curl -X POST http://localhost:4000/api/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"luna@correo.com","password":"abc12345"}'
+
+# Error de validación (correo sin @ → 400 con detalle de campo)
+curl -X POST http://localhost:4000/api/auth/register \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"lunacorreo.com","password":"abc12345","displayName":"Luna"}' | jq
+
+# Cerrar sesión (necesita el token en la cabecera Authorization)
+curl -X POST http://localhost:4000/api/auth/logout \
+  -H 'Authorization: Bearer <token>'
+```
+
 ### Proveedor de IA
 
 El narrador de recomendaciones y el asistente de cocina aceptan dos proveedores con el mismo protocolo chat-completions: `AI_PROVIDER=openai` y `AI_PROVIDER=groq` (Groq tiene capa gratuita y es OpenAI-compatible). Cada proveedor trae su endpoint y su modelo por defecto, y si no hay llave o falla la llamada, el texto local determinístico responde igual (`local-model`).
