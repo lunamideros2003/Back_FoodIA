@@ -164,4 +164,13 @@ describe("gRPC-Web bridge", () => {
     assert.equal(answer.frames.length, 1);
     assert.match(Buffer.from(answer.frames[0].payload).toString("utf8"), /grpc-status: 12/);
   });
+
+  it("reports INVALID_ARGUMENT for a truncated protobuf body", async () => {
+    const answer = await call("GetDish", new Uint8Array([0x08, 0x80]));
+
+    assert.equal(answer.frames.length, 1);
+    const trailers = Buffer.from(answer.frames[0].payload).toString("utf8");
+    assert.match(trailers, /grpc-status: 3/);
+    assert.match(trailers, /Petici%C3%B3n%20inv%C3%A1lida/);
+  });
 });
