@@ -8,14 +8,23 @@
 interface CheckInput {
   isProduction: boolean;
   corsOrigins: string[];
+  /** False when the app fell back to the SQLite file. */
+  hasDatabaseUrl?: boolean;
 }
 
 const PRODUCTION_FRONTEND_HINTS = ["vercel.app", "netlify.app", "pages.dev", "onrender.com"];
 
-export function WARNINGS({ isProduction, corsOrigins }: CheckInput): string[] {
+export function WARNINGS({ isProduction, corsOrigins, hasDatabaseUrl }: CheckInput): string[] {
   const warnings: string[] = [];
 
   if (!isProduction) return warnings;
+
+  if (hasDatabaseUrl === false) {
+    warnings.push(
+      "Sin DATABASE_URL la base sigue siendo un archivo SQLite: en Render sin disco " +
+        "se borra en cada despliegue. Conecta Supabase y pega su cadena en DATABASE_URL.",
+    );
+  }
 
   const localhostOnly = corsOrigins.every((origin) => origin.includes("localhost"));
   const allowsAnyOrigin = corsOrigins.includes("*");

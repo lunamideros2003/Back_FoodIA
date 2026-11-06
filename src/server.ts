@@ -1,6 +1,6 @@
 import { createApp } from "./app.ts";
 import { env, isProduction } from "./config/env.ts";
-import { closeDb } from "./db/connection.ts";
+import { closeDb, databaseLabel } from "./db/connection.ts";
 import { modelStore } from "./services/modelStore.ts";
 import { WARNINGS } from "./deployChecks.ts";
 import { startGrpcServer, stopGrpcServer } from "./grpc/server.ts";
@@ -13,7 +13,7 @@ const server = app.listen(env.port, () => {
   console.log("  FoodMood IA · API de recomendaciones");
   console.log(`  → http://localhost:${env.port}/api/health`);
   console.log(`  → grpc://localhost:${env.grpcPort} (FoodMoodStatus)`);
-  console.log(`  → Base de datos: ${env.databaseFile}`);
+  console.log(`  → Base de datos: ${databaseLabel()}`);
   console.log(
     `  → Modelo ${stats.version} | ${stats.dishes} platos | ${stats.observations} observaciones | ${stats.trainingMs} ms`,
   );
@@ -24,7 +24,11 @@ const server = app.listen(env.port, () => {
   // On a hosted platform the silent killers are a missing CORS entry and a
   // database path on an ephemeral filesystem. Both are cheap to notice here
   // and impossible to notice later from the browser.
-  const productionWarnings = WARNINGS({ isProduction, corsOrigins: env.corsOrigins });
+  const productionWarnings = WARNINGS({
+    isProduction,
+    corsOrigins: env.corsOrigins,
+    hasDatabaseUrl: Boolean(env.databaseUrl),
+  });
   if (productionWarnings.length > 0) {
     console.log("");
     for (const warning of productionWarnings) {

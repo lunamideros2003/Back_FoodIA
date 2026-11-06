@@ -221,10 +221,19 @@ function seedDemoUsers(db: DatabaseSync): number {
      ON CONFLICT(email) DO NOTHING`,
   );
   const insertPrefs = db.prepare(
-    `INSERT OR REPLACE INTO user_preferences
+    `INSERT INTO user_preferences
        (user_id, diet, max_prep_minutes, max_spice_level, max_price_level,
         allergies, disliked_ingredients, health, daily_calorie_goal)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(user_id) DO UPDATE SET
+       diet = excluded.diet,
+       max_prep_minutes = excluded.max_prep_minutes,
+       max_spice_level = excluded.max_spice_level,
+       max_price_level = excluded.max_price_level,
+       allergies = excluded.allergies,
+       disliked_ingredients = excluded.disliked_ingredients,
+       health = excluded.health,
+       daily_calorie_goal = excluded.daily_calorie_goal`,
   );
 
   for (const user of users) {

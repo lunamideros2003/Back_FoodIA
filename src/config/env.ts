@@ -38,6 +38,14 @@ export const env = {
     projectRoot,
     process.env.DATABASE_FILE ?? "./data/foodmood.db",
   ),
+  /**
+   * Set this to the Supabase connection string to switch the whole backend to
+   * Postgres. Empty means SQLite, which is what local development and the test
+   * suite use. `pglite://memory` is the in-process Postgres used by tests.
+   */
+  databaseUrl: (process.env.DATABASE_URL ?? "").trim(),
+  databaseSsl: process.env.DATABASE_SSL !== "false",
+  databaseTimeoutMs: toInt(process.env.DATABASE_TIMEOUT_MS, 30_000),
   corsOrigins: (process.env.CORS_ORIGIN ?? "http://localhost:5173")
     .split(",")
     .map((origin) => origin.trim())
