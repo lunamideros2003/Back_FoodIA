@@ -101,6 +101,24 @@ describe("auth routes", () => {
     assert.equal(badName.status, 400);
   });
 
+  it("explains validation errors in Spanish", async () => {
+    const response = await register({
+      email: "sin-arroba.example.com",
+      password: "corta",
+      displayName: "A",
+    });
+    assert.equal(response.status, 400);
+
+    const body = (await response.json()) as {
+      details?: Array<{ field: string; message: string }>;
+    };
+    const messages = new Map((body.details ?? []).map((detail) => [detail.field, detail.message]));
+
+    assert.equal(messages.get("email"), "El correo debe incluir una @ y un dominio válido.");
+    assert.equal(messages.get("password"), "La contraseña debe tener al menos 8 caracteres.");
+    assert.equal(messages.get("displayName"), "El nombre es demasiado corto (mínimo 2 caracteres).");
+  });
+
   it("logs in with the right password and issues another session", async () => {
     const response = await login({
       email: "auth.tester@example.com",
