@@ -19,6 +19,7 @@ export const authRouter = Router();
 const credentialsSchema = z.object({
   email: z
     .string()
+    .trim()
     .email("El correo debe incluir una @ y un dominio válido.")
     .max(120, "El correo es demasiado largo (máximo 120 caracteres)."),
   password: z
@@ -81,7 +82,8 @@ authRouter.post(
   "/login",
   asyncRoute(async (req, res) => {
     const body = credentialsSchema.parse(req.body);
-    const user = findUserByEmail(body.email.toLowerCase());
+    const email = body.email.trim().toLowerCase();
+    const user = findUserByEmail(email);
 
     if (!user || !verifyPassword(body.password, user.getPasswordHash?.() ?? null)) {
       throw new HttpError(401, "Correo o contraseña incorrectos.");
