@@ -7,6 +7,22 @@ import { startGrpcServer, stopGrpcServer } from "./grpc/server.ts";
 
 const app = createApp();
 
+/**
+ * The first boot against an empty Supabase has to create the schema and insert
+ * the 40 dishes. That is hundreds of round trips, so it happens BEFORE the
+ * port opens: Render waits for the port and never sends a health check in the
+ * middle of the seeding. Later boots only run a single COUNT.
+ */
+try {
+  modelStore.ensureReady();
+} catch (error) {
+  console.error(
+    "[db] No se pudo preparar la base de datos:",
+    (error as Error).message,
+  );
+  process.exit(1);
+}
+
 const server = app.listen(env.port, () => {
   const stats = modelStore.stats();
   console.log("");
@@ -18,7 +34,11 @@ const server = app.listen(env.port, () => {
     `  → Modelo ${stats.version} | ${stats.dishes} platos | ${stats.observations} observaciones | ${stats.trainingMs} ms`,
   );
   console.log(
-    `  → Capa de IA: ${env.ai.provider === "openai" ? `LLM (${env.ai.model})` : "modelo local (offline)"}`,
+    `  → Capa de IA: ${
+      env.ai.provider === "local"
+        ? "modelo local (offline)"
+        : `LLM (${env.ai.provider} · ${env.ai.model})`
+    }`,
   );
 
   // On a hosted platform the silent killers are a missing CORS entry and a
