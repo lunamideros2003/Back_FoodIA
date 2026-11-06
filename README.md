@@ -15,12 +15,15 @@ La base de datos SQLite se crea y se siembra sola en el primer arranque. Para re
 npm run seed -- --force
 ```
 
+Para usar Postgres (Supabase) en vez de SQLite basta con definir `DATABASE_URL`; el
+esquema y los datos se crean igual de solos. Ver [`DEPLOY.md`](./DEPLOY.md).
+
 | Comando | Qué hace |
 |---|---|
 | `npm run dev` | Servidor con recarga automática |
 | `npm start` | Servidor normal |
 | `npm run seed` | Siembra la base (idempotente) |
-| `npm test` | 43 pruebas del motor de IA |
+| `npm test` | 263 pruebas: motor de IA, API y persistencia |
 | `npm run typecheck` | `tsc --noEmit` |
 | `node --experimental-strip-types scripts/smoke.ts` | Prueba de humo de los 26 endpoints |
 
@@ -29,6 +32,7 @@ npm run seed -- --force
 - **Node 22.6+** ejecutando **TypeScript directamente** (sin paso de build: *type stripping* nativo)
 - **Express 5** para el HTTP
 - **`node:sqlite`** — SQLite viene en Node, no hay dependencias nativas que compilar
+- **`pg` + Postgres** — misma API síncrona sobre Supabase cuando hay `DATABASE_URL`
 - **Zod** para validar la entrada
 - **Cero dependencias de IA**: el modelo es propio y funciona sin internet
 
@@ -47,8 +51,12 @@ src/
 │   ├── recommender.ts     Pipeline de ranking + MMR + precedencia del ánimo
 │   └── narrative.ts       Explicación en español (local o LLM)
 ├── db/
-│   ├── connection.ts      Conexión a SQLite
-│   ├── schema.ts          Definición de tablas + migraciones idempotentes
+│   ├── connection.ts      Elige SQLite o Postgres según DATABASE_URL
+│   ├── schema.ts          Tablas para SQLite
+│   ├── schema.postgres.ts Tablas para Postgres (Supabase)
+│   ├── postgres.ts        Adaptador síncrono sobre Postgres
+│   ├── postgresSql.ts     Traduce el dialecto SQLite → Postgres
+│   ├── postgresWorker.mjs Worker que mantiene la conexión real
 │   ├── seed.ts            Siembra
 │   └── seed/              Datos: 6 estados, 40 platos, 40 recetas, historial demo
 ├── domain/types.ts        Tipos compartidos

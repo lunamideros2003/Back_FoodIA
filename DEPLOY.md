@@ -1,149 +1,225 @@
-# Despliegue del backend
+# Despliegue: Supabase + Render + Vercel
 
-## El problema que hay que resolver primero
-
-La base de datos es un **archivo**: `data/foodmood.db`. Los servidores sin servidor como Vercel o Netlify
-usan un disco que **se borra en cada despliegue**. Cada vez que publicas, la base desaparecería
-y las interacciones de los usuarios se perderían.
-
-Por eso el backend **no va en Vercel** aunque el frontend sí. Necesita un servidor con disco
-permanente, que se llama *volume*.
+La aplicación tiene tres piezas y cada una vive en un sitio distinto:
 
 ```
-Vercel        →  frontend  ✅  (archivos estáticos, perfecto)
-Railway/Fly   →  backend   ✅  (con volume para la base)
-Vercel        →  backend   ❌  (se le olvidaría la base)
+Vercel          →  frontend React (archivos estáticos)
+Render          →  backend Express (API REST + gRPC-Web)
+Supabase        →  base de datos Postgres
 ```
 
-## Opción recomendada: Railway (la más fácil)
+El navegador **nunca** habla con la base de datos: solo llama al backend, y el
+backend es el único que conoce la cadena de conexión. Por eso las claves de
+Supabase y de la IA viven en Render, jamás en el frontend.
 
-Railway detecta el `Dockerfile` y el `railway.json` que ya vienen en el repositorio. No hace falta
-configurar casi nada.
+---
 
-**Pasos**
+## 1. Supabase (la base de datos)
 
-1. Entra a [railway.app](https://railway.app) con tu cuenta de GitHub
-2. **New Project → Deploy from GitHub repo** → elige `Back_FoodIA`
-3. Railway detecta el `Dockerfile` y compila solo
-4. Cuando termine te da una URL tipo `back-foodia-production.up.railway.app`
-5. Ve a **Variables** y agrega estas cuatro:
+El proyecto ya está creado: `vomcbcbkrpfgmxyzertt`.
 
-```
-NODE_ENV         = production
-DATABASE_FILE    = /data/foodmood.db
-CORS_ORIGIN      = https://tu-frontend.vercel.app
-PORT             = 4000
-```
+### 1.1. Obtener la contraseña
 
-6. En el servicio, **Volumes → Add Volume**:
-   - Mount path: `/data`
-   - Nada más
+1. Entra a <https://supabase.com/dashboard> y abre el proyecto.
+2. **Project Settings → Database → Reset database password**.
+3. Genera una contraseña, cópiala y guárdala. **No se vuelve a mostrar.**
 
-7. **Deploy**. La primera vez tarda unos minutos.
+Si ya la tienes, sáltate este paso.
 
-**Verificar** que quedó bien:
+### 1.2. Copiar la cadena de conexión correcta
 
-```bash
-curl https://back-foodia-production.up.railway.app/api/health
-# debe responder {"status":"ok",...}
-```
+En el panel del proyecto pulsa **Connect** (arriba) y elige
+**Session pooler** — no la conexión directa.
 
-Costo: hay un plan gratuito limitado y luego **desde $5 USD/mes** con uso medido. Para un proyecto
-de clase suele salir más barato que cualquier alternativa de pago.
+¿Por qué la Session Pooler? La conexión directa usa IPv6, y Render no siempre
+tiene salida IPv6. La Session Pooler funciona por IPv4 y sirve para una app que
+mantiene una sola conexión, como esta.
 
-## Alternativa gratuita: Oracle Cloud Always Free
-
-Un servidor VPS completo gratis, pero para siempre. Requiere unos pasos más:
-
-```bash
-# Ubuntu en una VM con Always Free (1 CPU, 1 GB RAM)
-sudo apt update && sudo apt install -y nodejs npm docker.io
-sudo mkdir -p /opt/foodmood
-
-# Copiar el proyecto
-git clone https://github.com/lunamideros2003/Back_FoodIA.git /opt/foodmood/backend
-cd /opt/foodmood/backend
-
-npm ci --omit=dev
-DATABASE_FILE=/opt/foodmood/data/foodmood.db CORS_ORIGIN=https://tu-frontend.vercel.app npm start
-```
-
-Para que no se apague al cerrar la sesión, usa `pm2`:
-
-```bash
-sudo npm install -g pm2
-pm2 start npm --name foodmood -- start
-pm2 save
-pm2 startup    # sigue funcionando aunque reinicies la máquina
-```
-
-La ventaja: **no cuesta nada**. La desventaja: registrarte requiere tarjeta, aunque no te cobren.
-
-## Alternativa: Fly.io
-
-Similar a Railway pero con más créditos de prueba gratis y CLI en vez de panel web.
-
-```bash
-fly launch --no-deploy                        # crea la app
-fly volumes create foodmood_data --size 1      # 1 GB
-fly secrets set DATABASE_FILE=/data/foodmood.db CORS_ORIGIN=https://tu-frontend.vercel.app
-fly deploy
-```
-
-## Si de verdad quieres el backend en Vercel
-
-Se puede, pero hay que **cambiar la base de datos**, porque Vercel no guarda archivos. La opción
-más cercana a lo que ya tienes es **Turso (libSQL)**, que es SQLite pero en la nube:
-
-```bash
-npm install @libsql/client
-```
-
-En `src/db/connection.ts` cambiarías `new DatabaseSync(...)` por un cliente de Turso, y las
-variables de entorno serían `TURSO_DATABASE_URL` y `TURSO_AUTH_TOKEN`. El resto del código
-(las consultas SQL) no cambia porque sigue siendo SQLite. Es más trabajo y un archivo nuevo, por eso
-no es la recomendada.
-
-## Frontend en Vercel
-
-El frontend va normal en Vercel. En la configuración:
-
-- **Root Directory**: `Fron_FoodIA`
-- **Framework**: Vite
-- **Build Command**: `npm run build`
-- **Output Directory**: `dist`
-
-En **Variables** agrega:
+Te dará algo así:
 
 ```
-VITE_API_BASE_URL = https://tu-backend.up.railway.app
+postgresql://postgres.vomcbcbkrpfgmxyzertt:TU-PASSWORD@aws-0-us-east-1.pooler.supabase.com:5432/postgres
 ```
 
-Vite solo expone al navegador las variables que empiezan con `VITE_`, por eso ese prefijo no es
-opcional.
+Sustituye `TU-PASSWORD` por la contraseña del paso 1.1. Esa cadena completa es
+el valor de `DATABASE_URL`.
 
-## Errores típicos
+### 1.3. No hay que crear tablas
+
+El backend crea el esquema (`users`, `dishes`, `favorites`, etc.) y siembra los
+40 platos automáticamente la primera vez que arranca con `DATABASE_URL`.
+`CREATE TABLE IF NOT EXISTS` hace que los siguientes arranques no toquen nada.
+
+Si quieres crearlas ya desde tu máquina, salta a “Probar la base desde local”.
+
+---
+
+## 2. Render (el backend)
+
+El servicio ya existe en <https://back-foodia.onrender.com>. Solo hay que
+actualizar las variables.
+
+1. Entra a <https://dashboard.render.com> → **foodmood-backend** → **Environment**.
+2. Añade o corrige estas variables:
+
+| Variable | Valor |
+|---|---|
+| `NODE_ENV` | `production` |
+| `PORT` | `4000` |
+| `DATABASE_URL` | La cadena **Session Pooler** completa |
+| `DATABASE_SSL` | `true` |
+| `GRPC_PORT` | `0` |
+| `CORS_ORIGIN` | `https://fron-food-ia.vercel.app` |
+| `AI_PROVIDER` | `local`, `groq` u `openai` |
+| `AI_API_KEY` | La clave del proveedor (solo si no es `local`) |
+| `AI_MODEL` | Opcional; por defecto `llama-3.3-70b-versatile` (Groq) o `gpt-4o-mini` (OpenAI) |
+
+3. **Save changes**. Render redespliega solo.
+
+> El plan free de Render “duerme” el servicio tras 15 minutos sin visitas. La
+> primera petición después de eso tarda ~30 s en despertar. Es normal.
+
+### Variables que puedes borrar de Render
+
+- `DATABASE_FILE`: ya no se usa cuando hay `DATABASE_URL`.
+
+### gRPC
+
+El proxy HTTP de Render no enruta HTTP/2, así que el gRPC nativo se apaga con
+`GRPC_PORT=0`. El **gRPC-Web** sigue disponible por HTTP normal en
+`/api/grpc/...`, que es lo que usa el navegador.
+
+---
+
+## 3. Vercel (el frontend)
+
+El proyecto ya existe en <https://fron-food-ia.vercel.app>.
+
+1. Entra a <https://vercel.com> → el proyecto del frontend → **Settings → Environment Variables**.
+2. Añade:
+
+| Variable | Valor |
+|---|---|
+| `VITE_API_BASE_URL` | `https://back-foodia.onrender.com` |
+
+Sin barra final y **sin** `/api`: el código añade las rutas él mismo.
+
+3. Ve a **Deployments → … → Redeploy**. Vercel solo inyecta las variables
+   `VITE_*` al construir, así que un cambio de variable no se aplica hasta el
+   siguiente despliegue.
+
+Si cambias el dominio del frontend, actualiza también `CORS_ORIGIN` en Render.
+
+---
+
+## 4. La capa de IA
+
+El proyecto tiene tres modos, y solo cambia una variable:
+
+| `AI_PROVIDER` | Qué usa | Clave | Coste |
+|---|---|---|---|
+| `local` | Generador de texto propio, sin internet | Ninguna | Gratis |
+| `groq` | Llama 3.3 70B en Groq | <https://console.groq.com> | Plan gratis |
+| `openai` | GPT-4o mini | <https://platform.openai.com> | De pago |
+
+### Groq (recomendado para la demo)
+
+1. Crea una cuenta en <https://console.groq.com>.
+2. **API Keys → Create API Key** y copia la clave (`gsk_...`).
+3. En Render:
+
+```
+AI_PROVIDER=groq
+AI_API_KEY=gsk_...
+AI_MODEL=llama-3.3-70b-versatile
+```
+
+### OpenAI
+
+```
+AI_PROVIDER=openai
+AI_API_KEY=sk-...
+AI_MODEL=gpt-4o-mini
+```
+
+### Importante
+
+- La clave **solo** va en Render (backend). Nunca en Vercel ni en el código.
+- Si la clave falta o el proveedor falla, la app **no se rompe**: cae sola al
+  generador local. El endpoint `/api/health` muestra qué proveedor está activo.
+- Groq y OpenAI comparten el mismo formato de API; por eso cambiar de uno a
+  otro es solo cambiar la clave y el modelo.
+
+---
+
+## 5. Probar la base desde local (opcional pero recomendado)
+
+Antes de confiar en Render, comprueba que la cadena funciona desde tu máquina:
+
+```powershell
+cd Back_FoodIA
+$env:DATABASE_URL="postgresql://postgres.vomcbcbkrpfgmxyzertt:TU-PASSWORD@aws-0-us-east-1.pooler.supabase.com:5432/postgres"
+$env:DATABASE_SSL="true"
+npm run dev
+```
+
+En el arranque debe decir `Base de datos: PostgreSQL (Supabase)` y
+`Modelo … | 40 platos`. Si ves eso, las tablas ya están creadas en Supabase.
+
+Para forzar una resiembra:
+
+```powershell
+$env:DATABASE_URL="..."
+npm run seed -- --force
+```
+
+> `npm test` sigue usando SQLite aunque tengas `DATABASE_URL` en el `.env`: el
+> runner de pruebas lo ignora a propósito para no tocar la base real.
+
+---
+
+## 6. Verificar que todo quedó bien
+
+```powershell
+# 1. Backend vivo y con la IA correcta
+curl.exe -s https://back-foodia.onrender.com/api/health
+
+# 2. Catálogo servido desde Supabase
+curl.exe -s https://back-foodia.onrender.com/api/dishes?limit=1
+
+# 3. Frontend
+curl.exe -s -o NUL -w "%{http_code}" https://fron-food-ia.vercel.app
+
+# 4. Datos reales: crea una cuenta en el sitio, guarda un favorito,
+#    recarga y comprueba que sigue ahí.
+```
+
+Si el punto 4 sobrevive a un redespliegue de Render, Supabase está funcionando.
+
+---
+
+## 7. Errores típicos
 
 | Síntoma | Causa | Solución |
 |---|---|---|
-| `EADDRINUSE` al arrancar local | Ya hay un servidor en el puerto | `Ctrl+C` en la otra terminal |
-| El navegador dice "CORS" o "blocked by" | La URL de Vercel no está autorizada | Agregar `CORS_ORIGIN` y redesplegar |
-| El frontend carga pero no muestra platos | `VITE_API_BASE_URL` mal escrita | Verificar que termine sin `/api` |
-| La base se vacía al redesplegar | No hay volume montado | Crear el volume en `/data` |
-| Cambia la URL del frontend en cada deploy | Vercel genera un subdominio nuevo | Fijar un dominio propio, o copiar la URL nueva a `CORS_ORIGIN` |
+| `La conexión a Postgres no respondió` | `DATABASE_URL` mal copiada o Render sin salida a esa región | Revisar que sea la **Session Pooler** y que la contraseña esté bien |
+| `password authentication failed` | Contraseña incorrecta o caracteres sin codificar | Resetear la contraseña en Supabase y volver a copiar |
+| `self signed certificate` | URL con `sslmode` raro | Dejar que el backend añada TLS (`DATABASE_SSL=true`) |
+| El navegador dice “blocked by CORS” | Falta el dominio en `CORS_ORIGIN` | Añadirlo en Render y redesplegar |
+| El frontend carga pero no hay platos | `VITE_API_BASE_URL` mal escrita | Debe ser `https://back-foodia.onrender.com`, sin `/api` |
+| Los datos desaparecen al redesplegar | Sigue usando SQLite | Confirmar que `DATABASE_URL` está definida en Render |
+| `EADDRINUSE` en local | Ya hay otro servidor en el puerto | `Ctrl+C` en la otra terminal |
+| La primera petición tarda 30 s | Render free durmió el servicio | Normal; se despierta solo |
 
-## Verificar que todo quedó bien
+---
 
-```bash
-# 1. El backend responde
-curl https://tu-backend.up.railway.app/api/health
+## 8. Notas de seguridad
 
-# 2. El frontend lo alcanza
-curl https://tu-backend.up.railway.app/api/moods
-
-# 3. Desde el navegador, abrir el sitio y revisar la consola:
-#    no debe haber errores de red
-```
-
-Si el backend responde pero el navegador muestra "blocked by CORS", el problema está en
-`CORS_ORIGIN` y nada más.
+- `DATABASE_URL` contiene la contraseña: es un secreto. No la subas al
+  repositorio ni la pongas en Vercel.
+- El `.gitignore` ya excluye `.env` y `data/`.
+- Las tablas viven en el esquema `public` de Supabase. El backend se conecta
+  como el usuario `postgres`, así que no hace falta configurar RLS: el
+  navegador no tiene acceso directo a Postgres.
+- Cualquier persona con la clave de IA puede gastar tu cuota: si se filtra,
+  revócala en el panel del proveedor y genera otra.

@@ -1,18 +1,12 @@
 # FoodMood IA · backend en Render
 #
-# Este archivo es un "Blueprint": Render lo lee solo y arma el servicio
-# con la configuración correcta. Los secretos se ponen en el panel web
-# (Environment), nunca aquí.
+# Este archivo es un "Blueprint": Render lo lee y arma el servicio con esta
+# configuración. Los secretos (contraseña de Supabase, clave de IA) NO van
+# aquí: se pegan en el panel web, en Environment. Las variables con
+# `sync: false` son justamente las que Render te pide al crear el servicio.
 #
-# OJO IMPORTANTE sobre el disco:
-# El plan "free" de Render NO tiene disco permanente. Cada que Render
-# recicla el servicio o redespliegas, la base de datos se borra. La
-# aplicación sigue funcionando (se vuelve a llenar sola con los 40
-# platos), pero los perfiles y el historial que crean los usuarios se
-# pierden.
-#
-# Si necesitas que los datos sobrevivan, cambia `plan: starter` y
-# descomenta el bloque `disk` de abajo.
+# Los datos viven en Supabase (Postgres), no en el disco de Render. Por eso el
+# plan free alcanza: aunque Render recicle el contenedor, la base sigue ahí.
 
 services:
   - type: web
@@ -25,16 +19,28 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      - key: DATABASE_FILE
-        value: /data/foodmood.db
       - key: PORT
         value: 4000
-      # Cambia esto por la URL de tu frontend en Vercel.
-      - key: CORS_ORIGIN
-        sync: false
 
-    # Con plan: starter, descomenta este bloque para que los datos persistan.
-    # disk:
-    #   name: foodmood-data
-    #   mountPath: /data
-    #   sizeGB: 1
+      # Cadena "Session Pooler" de Supabase. Es un secreto: se pega en el panel.
+      # postgresql://postgres.PROYECTO:PASSWORD@aws-0-REGION.pooler.supabase.com:5432/postgres
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_SSL
+        value: true
+
+      # El proxy HTTP de Render no enruta HTTP/2, así que el gRPC nativo se
+      # apaga. El gRPC-Web sigue funcionando por /api/grpc.
+      - key: GRPC_PORT
+        value: 0
+
+      # Dominio real del frontend en Vercel. Si cambia, actualízalo.
+      - key: CORS_ORIGIN
+        value: https://fron-food-ia.vercel.app
+
+      # IA: local funciona sin internet. Para usar Groq u OpenAI cambia
+      # AI_PROVIDER y pega la clave en el panel (AI_API_KEY).
+      - key: AI_PROVIDER
+        value: local
+      - key: AI_API_KEY
+        sync: false
