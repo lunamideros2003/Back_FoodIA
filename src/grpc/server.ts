@@ -69,9 +69,12 @@ export async function stopGrpcServer(): Promise<void> {
   if (!server) return;
   grpcServer = null;
   grpcPort = 0;
-  await new Promise<void>((resolve) => {
-    server.tryShutdown(() => resolve());
-  });
+  // tryShutdown no siempre llama al callback; un temporizador de seguridad
+  // evita que los tests o el apagado se cuelguen para siempre.
+  await Promise.race([
+    new Promise<void>((resolve) => server.tryShutdown(() => resolve())),
+    new Promise<void>((resolve) => setTimeout(resolve, 5000)),
+  ]);
 }
 
 /** A client pointing at the local insecure server; used by tests and scripts. */

@@ -255,6 +255,17 @@ npm run grpc:probe
 ```
 
 - Puente para el navegador: `POST /api/grpc/foodmood.v1.FoodMoodStatus/GetStatus` y `.../GetDish` hablan gRPC-Web sobre HTTP/1.1 (`application/grpc-web+proto`, y también la variante `-text` en base64), así el frontend consume el mismo contrato sin Envoy. Los trailers viajan como frame `0x80` con `grpc-status`.
+
+```bash
+# GetStatus del puente (payload vacío con frame 0x00)
+curl -X POST http://localhost:4000/api/grpc/foodmood.v1.FoodMoodStatus/GetStatus \
+  -H 'Content-Type: application/grpc-web+proto' \
+  --data-binary $'\x00\x00\x00\x00\x00' | xxd | head
+
+# Descubrimiento del contrato
+curl http://localhost:4000/api/grpc | jq
+```
+
 - Si el puerto gRPC está ocupado, la API REST sigue funcionando: solo se pierde esa capa.
 
 ## Variables de entorno
