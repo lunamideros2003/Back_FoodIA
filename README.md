@@ -23,7 +23,7 @@ esquema y los datos se crean igual de solos. Ver [`DEPLOY.md`](./DEPLOY.md).
 | `npm run dev` | Servidor con recarga automática |
 | `npm start` | Servidor normal |
 | `npm run seed` | Siembra la base (idempotente) |
-| `npm test` | 263 pruebas: motor de IA, API y persistencia |
+| `npm test` | 281 pruebas: motor de IA, API y persistencia |
 | `npm run typecheck` | `tsc --noEmit` |
 | `node --experimental-strip-types scripts/smoke.ts` | Prueba de humo de los 26 endpoints |
 
@@ -273,6 +273,46 @@ curl -X POST http://localhost:4000/api/auth/logout \
 
 El narrador de recomendaciones y el asistente de cocina aceptan dos proveedores con el mismo protocolo chat-completions: `AI_PROVIDER=openai` y `AI_PROVIDER=groq` (Groq tiene capa gratuita y es OpenAI-compatible). Cada proveedor trae su endpoint y su modelo por defecto, y si no hay llave o falla la llamada, el texto local determinístico responde igual (`local-model`).
 
+### Chatbot general
+
+`POST /api/assistant/chat` es el chat de la app, separado del asistente de una receta concreta. Habla de tres temas: comida y cocina, dietas y alimentación, y cómo usar FoodMood IA. La bienvenida y las respuestas locales lo dicen desde el primer mensaje.
+
+```bash
+curl -X POST http://localhost:4000/api/assistant/chat \
+  -H 'Content-Type: application/json' \
+  -d '{"message":"¿Qué puedo cocinar con arroz y pollo?"}'
+```
+
+```json
+{
+  "answer": "Puedo ayudarte con recetas, ingredientes...",
+  "source": "llm",
+  "topic": "food",
+  "inScope": true,
+  "suggestions": ["¿Qué puedo cocinar con lo que tengo en la nevera?", "..."]
+}
+```
+
+Antes de llamar al modelo, `src/ai/chatTopics.ts` clasifica el mensaje. Una suma, una tarea, programación, política, deportes o el clima se marcan como `off-topic` y se responden en el acto con `inScope: false`, sin gastar una llamada de IA:
+
+```bash
+curl -X POST http://localhost:4000/api/assistant/chat \
+  -H 'Content-Type: application/json' \
+  -d '{"message":"ayúdame con una suma: 2+2"}'
+```
+
+```json
+{
+  "answer": "Eso se sale de lo que puedo hacer: solo te ayudo con comida, dietas y el uso de FoodMood IA. No resuelvo sumas, tareas ni preguntas de otros temas...",
+  "source": "local-model",
+  "topic": "off-topic",
+  "inScope": false,
+  "suggestions": ["..."]
+}
+```
+
+El cuerpo acepta `message` (obligatorio, máximo 600 caracteres), `history` (hasta 12 turnos) y `userId` opcional. Si llega `userId` con sesión iniciada, el prompt incluye la dieta y las alergias declaradas. El tiempo de espera del proveedor se ajusta con `AI_CHAT_TIMEOUT_MS` (12 s por defecto). El endpoint comparte el límite de 40 peticiones por minuto con las rutas de IA.
+
 ### gRPC
 
 El backend también habla gRPC nativo (HTTP/2 + protobuf) en su propio puerto, sin tocar la API REST:
@@ -317,6 +357,8 @@ AI_PROVIDER=local
 AI_BASE_URL=https://api.openai.com/v1
 AI_API_KEY=
 AI_MODEL=gpt-4o-mini
+# Tiempo máximo de espera del chatbot general (ms)
+AI_CHAT_TIMEOUT_MS=12000
 ```
 
 ## Pruebas

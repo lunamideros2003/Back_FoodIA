@@ -150,6 +150,21 @@ AI_MODEL=gpt-4o-mini
 - Groq y OpenAI comparten el mismo formato de API; por eso cambiar de uno a
   otro es solo cambiar la clave y el modelo.
 
+### Chatbot general
+
+El chat de la app usa la misma clave y el mismo proveedor, pero con su propio
+tiempo de espera:
+
+```
+AI_CHAT_TIMEOUT_MS=12000
+```
+
+El bot solo responde sobre comida, dietas y el uso de la app. Las preguntas de
+otros temas (sumas, tareas, programación, clima) se rechazan localmente antes de
+llamar al modelo, así que el rechazo funciona incluso sin clave y sin gastar
+tokens. Si el proveedor falla, responde el texto local y el endpoint sigue
+devolviendo 200 con `source: "llm-fallback"` o `"local-model"`.
+
 ---
 
 ## 5. Probar la base desde local (opcional pero recomendado)
@@ -200,6 +215,11 @@ curl.exe -s https://back-foodia.onrender.com/api/dishes?limit=1
 
 # 3. Frontend
 curl.exe -s -o NUL -w "%{http_code}" https://fron-food-ia.vercel.app
+
+# 3b. Chatbot vivo y dentro de su alcance
+curl.exe -s -X POST https://back-foodia.onrender.com/api/assistant/chat `
+  -H "Content-Type: application/json" `
+  -d "{\"message\":\"ayúdame con una suma: 2+2\"}"
 
 # 4. Datos reales: crea una cuenta en el sitio, guarda un favorito,
 #    recarga y comprueba que sigue ahí.
