@@ -17,6 +17,30 @@ const encoder = new TextEncoder();
 const config = workerData.config ?? {};
 const url = String(config.url ?? "");
 
+/** Host and database, never the password. Used only in error messages. */
+function safeTarget(raw) {
+  try {
+    const parsed = new URL(raw);
+    return `${parsed.hostname}:${parsed.port || 5432}${parsed.pathname}`;
+  } catch {
+    return "(DATABASE_URL inválida)";
+  }
+}
+
+function validateUrl(raw) {
+  if (!raw) throw new Error("DATABASE_URL está vacía.");
+  if (!/^postgres(ql)?:\/\//i.test(raw)) {
+    throw new Error(
+      "DATABASE_URL debe empezar por postgresql://. Copia la cadena «Session Pooler» desde el botón Connect de Supabase.",
+    );
+  }
+  if (/\[YOUR-PASSWORD\]|TU-PASSWORD/i.test(raw)) {
+    throw new Error(
+      "La cadena todavía contiene el marcador de la contraseña. Reemplázalo por la contraseña real de Supabase.",
+    );
+  }
+}
+
 /** Lines like `-3 hours` and timestamps are the only types that differ. */
 function serialize(payload) {
   return JSON.stringify(payload, (_key, value) =>
@@ -121,6 +145,7 @@ async function openPostgres() {
     config.ssl !== false && !/localhost|127\.0\.0\.1/.test(config.url);
   const options = {
     connectionString: connectionString(config.url),
+    connectionTimeoutMillis: config.connectionTimeoutMs ?? 15_000,
     ...(useSsl ? { ssl: { rejectUnauthorized: false } } : {}),
   };
 
@@ -175,9 +200,24 @@ async function openPostgres() {
  * Main loop
  * ------------------------------------------------------------------ */
 
-const connection = url.startsWith("pglite:")
-  ? await openPglite(url)
-  : await openPostgres();
+let connection;
+try {
+  if (!url.startsWith("pglite:")) validateUrl(url);
+  connection = url.startsWith("pglite:")
+    ? await openPglite(url)
+    : await openPostgres();
+} catch (error) {
+  // Answer immediately instead of letting the main thread wait for its
+  // timeout: the deploy log then shows the real cause (wrong password,
+  // unreachable host, IPv6…) on the first line.
+  send({
+    error: {
+      message: `[${safeTarget(url)}] ${error?.message ?? String(error)}`,
+      code: error?.code,
+    },
+  });
+  process.exit(0);
+}
 
 parentPort.on("message", async (message) => {
   const { id, op, sql, params } = message;

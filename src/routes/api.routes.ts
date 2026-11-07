@@ -2,7 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { asyncRoute, HttpError } from "../middleware/error.ts";
 import { requireAuthUser } from "../middleware/auth.ts";
-import { getDb } from "../db/connection.ts";
+import { databaseLabel, getDb } from "../db/connection.ts";
 import { recommend } from "../services/recommendationService.ts";
 import { createUser, getUser, updatePreferences, getAllUsers } from "../services/userService.ts";
 import {
@@ -145,6 +145,7 @@ router.get("/health", (_req, res) => {
     service: "foodmood-ia-backend",
     version: modelStore.version,
     aiProvider: env.ai.provider,
+    database: databaseLabel(),
     catalogue: {
       dishes: listDishes().length,
       moods: listMoods().length,
