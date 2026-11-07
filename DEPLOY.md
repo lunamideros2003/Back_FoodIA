@@ -160,11 +160,22 @@ Antes de confiar en Render, comprueba que la cadena funciona desde tu máquina:
 cd Back_FoodIA
 $env:DATABASE_URL="postgresql://postgres.vomcbcbkrpfgmxyzertt:TU-PASSWORD@aws-0-us-east-1.pooler.supabase.com:5432/postgres"
 $env:DATABASE_SSL="true"
+npm run db:check
+```
+
+`db:check` solo lee: no crea ni borra nada. Debe responder `Conexión OK` y el
+número de tablas (0 si es la primera vez). Después:
+
+```powershell
 npm run dev
 ```
 
 En el arranque debe decir `Base de datos: PostgreSQL (Supabase)` y
 `Modelo … | 40 platos`. Si ves eso, las tablas ya están creadas en Supabase.
+
+> Si la contraseña tiene `@`, `:`, `/`, `?`, `#` o `%`, hay que escribirla
+> codificada en la URL (`@` → `%40`, `#` → `%23`, `%` → `%25`). Es la causa más
+> común de `password authentication failed` con una contraseña correcta.
 
 Para forzar una resiembra:
 
