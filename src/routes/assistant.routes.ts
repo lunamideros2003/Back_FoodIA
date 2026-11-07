@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { asyncRoute, HttpError } from "../middleware/error.ts";
+import { requireAuthUser } from "../middleware/auth.ts";
 import { findDishBySlug, findUserById } from "../services/repositories.ts";
 import { allergensOf } from "../ai/allergens.ts";
 import { GENERAL_SAFETY_NOTE, safetyNotesForDish } from "../ai/safety.ts";
@@ -9,6 +10,7 @@ import { answerChat } from "../ai/chatbot.ts";
 import { findSubstitutionsFor } from "../db/seed/dietary.ts";
 import { adaptRecipe } from "../services/adaptationService.ts";
 import type { AssistantContext } from "../domain/assistant.ts";
+import type { ChatPreferences } from "../domain/chatbot.ts";
 import type { Dish } from "../domain/types.ts";
 
 export const assistantRouter = Router();
@@ -182,7 +184,14 @@ assistantRouter.post(
   "/assistant/chat",
   asyncRoute(async (req, res) => {
     const body = chatSchema.parse(req.body);
-    const answer = await answerChat(body.message, body.history);
+    if (body.userId) requireAuthUser(req, body.userId);
+
+    const user = body.userId ? findUserById(body.userId) : null;
+    const preferences: ChatPreferences | undefined = user
+      ? { diet: user.preferences.diet, allergies: user.preferences.allergies }
+      : undefined;
+
+    const answer = await answerChat(body.message, body.history, { preferences });
     res.json(answer);
   }),
 );
