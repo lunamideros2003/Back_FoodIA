@@ -43,11 +43,23 @@ export function createUser(input: CreateUserInput): User {
   const email = input.email.trim().toLowerCase();
   const displayName = input.displayName.trim();
 
-  if (!email.includes("@")) {
-    throw Object.assign(new Error("El correo no tiene un formato válido."), { statusCode: 400 });
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw Object.assign(
+      new Error(
+        "El correo debe incluir una @ y un dominio válido, por ejemplo: nombre@correo.com.",
+      ),
+      { statusCode: 400 },
+    );
   }
   if (displayName.length < 2) {
-    throw Object.assign(new Error("El nombre debe tener al menos 2 caracteres."), { statusCode: 400 });
+    throw Object.assign(new Error("El nombre necesita al menos 2 caracteres."), {
+      statusCode: 400,
+    });
+  }
+  if (displayName.length > 40) {
+    throw Object.assign(new Error("El nombre es demasiado largo (máximo 40 caracteres)."), {
+      statusCode: 400,
+    });
   }
   if (findUserByEmail(email)) {
     throw Object.assign(new Error("Ya existe una cuenta con ese correo."), { statusCode: 409 });

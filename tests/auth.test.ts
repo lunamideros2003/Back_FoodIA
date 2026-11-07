@@ -114,9 +114,30 @@ describe("auth routes", () => {
     };
     const messages = new Map((body.details ?? []).map((detail) => [detail.field, detail.message]));
 
-    assert.equal(messages.get("email"), "El correo debe incluir una @ y un dominio válido.");
-    assert.equal(messages.get("password"), "La contraseña debe tener al menos 8 caracteres.");
-    assert.equal(messages.get("displayName"), "El nombre es demasiado corto (mínimo 2 caracteres).");
+    assert.equal(
+      messages.get("email"),
+      "El correo debe incluir una @ y un dominio válido, por ejemplo: nombre@correo.com.",
+    );
+    assert.equal(messages.get("password"), "La contraseña necesita al menos 8 caracteres.");
+    assert.equal(messages.get("displayName"), "El nombre necesita al menos 2 caracteres.");
+  });
+
+  it("rejects an email whose domain starts with a dot", async () => {
+    const response = await register({
+      email: "gabis@.com",
+      password: "pan-con-tomate-1",
+      displayName: "Gabi",
+    });
+    assert.equal(response.status, 400);
+
+    const body = (await response.json()) as {
+      details?: Array<{ field: string; message: string }>;
+    };
+    const emailDetail = (body.details ?? []).find((detail) => detail.field === "email");
+    assert.equal(
+      emailDetail?.message,
+      "El correo debe incluir una @ y un dominio válido, por ejemplo: nombre@correo.com.",
+    );
   });
 
   it("logs in with the right password and issues another session", async () => {

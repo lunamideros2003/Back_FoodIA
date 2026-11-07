@@ -20,18 +20,20 @@ const credentialsSchema = z.object({
   email: z
     .string()
     .trim()
-    .email("El correo debe incluir una @ y un dominio válido.")
-    .max(120, "El correo es demasiado largo (máximo 120 caracteres)."),
+    .min(1, "Escribe tu correo. Ejemplo: nombre@correo.com.")
+    .max(120, "El correo es demasiado largo (máximo 120 caracteres).")
+    .email("El correo debe incluir una @ y un dominio válido, por ejemplo: nombre@correo.com."),
   password: z
     .string()
-    .min(8, "La contraseña debe tener al menos 8 caracteres.")
+    .min(8, "La contraseña necesita al menos 8 caracteres.")
     .max(120, "La contraseña es demasiado larga (máximo 120 caracteres)."),
 });
 
 const registerSchema = credentialsSchema.extend({
   displayName: z
     .string()
-    .min(2, "El nombre es demasiado corto (mínimo 2 caracteres).")
+    .trim()
+    .min(2, "El nombre necesita al menos 2 caracteres.")
     .max(40, "El nombre es demasiado largo (máximo 40 caracteres)."),
   preferences: z
     .object({
