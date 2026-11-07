@@ -50,7 +50,7 @@ const APP_TERMS = [
   "foodmood", "food mood", "aplicacion", "app", "pagina", "web", "cuenta",
   "usuario", "contrasena", "correo", "iniciar sesion", "registrarme",
   "registro", "perfil", "favoritos", "historial", "despensa", "plan semanal",
-  "plan de comidas", "chatbot", "chat", "asistente", "chef ia", "preguntas",
+  "chatbot", "chat", "asistente", "chef ia", "preguntas",
   "ayuda", "guardar", "mis recetas", "mi animo", "recomendaciones",
   "cuestionario",
 ];
@@ -93,7 +93,7 @@ export function chatTopicOf(message: string): ChatTopic {
   }
 
   if (text.length <= 24 && GREETING.test(text)) return "greeting";
-  if (FOOD_PATTERN.test(text)) return "food";
   if (APP_PATTERN.test(text)) return "app";
+  if (FOOD_PATTERN.test(text)) return "food";
   return "unknown";
 }
