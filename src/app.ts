@@ -60,7 +60,12 @@ export function createApp(): Express {
   // The endpoints that may reach a model provider get a tighter limit than
   // the rest of the catalogue, which is cheap to serve.
   app.use(
-    ["/api/recipes", "/api/questionnaire/recommend", "/api/recommendations"],
+    [
+      "/api/recipes",
+      "/api/assistant/chat",
+      "/api/questionnaire/recommend",
+      "/api/recommendations",
+    ],
     rateLimit({ windowMs: 60_000, max: 40 }),
   );
 
@@ -103,6 +108,7 @@ export function createApp(): Express {
         "GET  /api/recipes/:slug/allergens",
         "GET  /api/recipes/:slug/safety",
         "POST /api/recipes/:slug/assistant",
+        "POST /api/assistant/chat",
         "POST /api/recipes/:slug/substitute",
         "POST /api/recipes/:slug/adapt",
         "GET  /api/questionnaire",
