@@ -1,10 +1,11 @@
 import { Router } from "express";
 import { z } from "zod";
-import { HttpError } from "../middleware/error.ts";
+import { asyncRoute, HttpError } from "../middleware/error.ts";
 import { findDishBySlug, findUserById } from "../services/repositories.ts";
 import { allergensOf } from "../ai/allergens.ts";
 import { GENERAL_SAFETY_NOTE, safetyNotesForDish } from "../ai/safety.ts";
 import { answerAssistantQuestion } from "../ai/assistant.ts";
+import { answerChat } from "../ai/chatbot.ts";
 import { findSubstitutionsFor } from "../db/seed/dietary.ts";
 import { adaptRecipe } from "../services/adaptationService.ts";
 import type { AssistantContext } from "../domain/assistant.ts";
@@ -35,6 +36,16 @@ const adaptSchema = z.object({
   servings: z.number().int().min(1).max(20).optional(),
   diet: z.enum(["omnivore", "vegetarian", "vegan", "pescatarian"]).optional(),
   excludeIngredients: z.array(z.string().max(60)).max(10).optional(),
+});
+
+const chatSchema = z.object({
+  message: z
+    .string()
+    .trim()
+    .min(1, "Escribe tu pregunta.")
+    .max(600, "La pregunta es demasiado larga (máximo 600 caracteres)."),
+  history: z.array(turnSchema).max(12).optional(),
+  userId: z.number().int().positive().optional(),
 });
 
 function requireDish(slug: string): Dish {
@@ -162,3 +173,16 @@ assistantRouter.post("/recipes/:slug/adapt", (req, res) => {
     warnings: result.warnings,
   });
 });
+
+/**
+ * The general chatbot: food, diets and how to use the app. Off-topic questions
+ * such as a sum are refused before a model call.
+ */
+assistantRouter.post(
+  "/assistant/chat",
+  asyncRoute(async (req, res) => {
+    const body = chatSchema.parse(req.body);
+    const answer = await answerChat(body.message, body.history);
+    res.json(answer);
+  }),
+);
