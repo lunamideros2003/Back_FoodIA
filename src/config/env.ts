@@ -59,6 +59,8 @@ export const env = {
     assistantTimeoutMs: toInt(process.env.AI_ASSISTANT_TIMEOUT_MS, 9000),
     /** How long the general chatbot waits before falling back. */
     chatTimeoutMs: toInt(process.env.AI_CHAT_TIMEOUT_MS, 12_000),
+    /** Recipe generation needs a little longer: it returns a full recipe. */
+    recipeTimeoutMs: toInt(process.env.AI_RECIPE_TIMEOUT_MS, 20_000),
   },
   /** Native gRPC (HTTP/2) endpoint; 0 disables the layer entirely. */
   grpcPort: process.env.GRPC_PORT === "0" ? 0 : toInt(process.env.GRPC_PORT, 4002),
