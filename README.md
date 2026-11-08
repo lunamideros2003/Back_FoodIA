@@ -315,7 +315,7 @@ El cuerpo acepta `message` (obligatorio, máximo 600 caracteres), `history` (has
 
 ### Recetas generadas con IA
 
-El catálogo ya no tiene un tope de 40: `POST /api/recipes/generate` pide una receta nueva al modelo, la valida y la guarda en las mismas tablas que las curadas.
+El catálogo ya no tiene un tope fijo: `POST /api/recipes/generate` pide una receta nueva al modelo, la valida y la guarda en las mismas tablas que las curadas.
 
 ```bash
 curl -X POST http://localhost:4000/api/recipes/generate \
@@ -323,7 +323,7 @@ curl -X POST http://localhost:4000/api/recipes/generate \
   -d '{"idea":"cena rápida con calabaza","servings":2}'
 ```
 
-El cuerpo acepta `idea` (máximo 240 caracteres), `diet`, `servings` y `userId` opcional. La respuesta es `201` con `{ dish, generated: true, total }`. Desde ese momento la receta aparece en el catálogo, se puede buscar, guardar en favoritos, marcar como preparada y recomendar como cualquier otra.
+El cuerpo acepta `idea` (máximo 240 caracteres), `diet`, `servings` y `userId` opcional. La respuesta es `201` con `{ dish, generated: true, total }`. Desde ese momento la receta aparece en el catálogo, se puede buscar, guardar en favoritos, marcar como preparada y recomendar como cualquier otra. El campo `total` queda disponible para clientes que lo necesiten, pero la interfaz no lo muestra: el catálogo se presenta como una lista abierta y no como un límite.
 
 Antes de guardar, `src/ai/recipeSchema.ts` exige nombre, categoría, tiempos, macros por porción, ingredientes, pasos y los 13 ejes del recomendador. Los alérgenos se derivan de las etiquetas de los ingredientes, no de lo que diga el modelo. Si la IA no está configurada o devuelve una receta incompleta, el endpoint responde `503` o `502` sin tocar el catálogo. El tiempo de espera se ajusta con `AI_RECIPE_TIMEOUT_MS` (20 s por defecto).
 
