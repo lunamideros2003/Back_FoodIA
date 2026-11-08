@@ -382,6 +382,7 @@ router.post(
       allergies: user?.preferences.allergies,
     });
     const dish = saveGeneratedRecipe(draft);
+    modelStore.retrain();
 
     res.status(201).json({ dish, generated: true, total: catalogueSize() });
   }),
