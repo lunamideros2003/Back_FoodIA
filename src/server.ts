@@ -65,21 +65,21 @@ const server = app.listen(env.port, () => {
  */
 function handleListenError(error: NodeJS.ErrnoException): void {
   if (error.code !== "EADDRINUSE") {
-    console.error("[server] No se pudo iniciar:", error.message);
+    console.error("[server] Failed to start:", error.message);
     process.exit(1);
   }
 
   console.log("");
-  console.log("  El puerto ya está ocupado. Casi siempre es otro FoodMood");
-  console.log("  corriendo en otra terminal.");
+  console.log("  The port is already in use. It is almost always another FoodMood");
+  console.log("  process running in a different terminal.");
   console.log("");
-  console.log("  Opción 1 · cerrar la otra terminal");
-  console.log("    Presiona Ctrl+C ahí y ya está.");
+  console.log("  Option 1 · close the other terminal");
+  console.log("    Press Ctrl+C there and you are done.");
   console.log("");
-  console.log("  Opción 2 · cerrarlo desde esta terminal");
+  console.log("  Option 2 · close it from this terminal");
   console.log(`    Stop-Process -Id (Get-NetTCPConnection -LocalPort ${env.port} -State Listen).OwningProcess -Force`);
   console.log("");
-  console.log("  Opción 3 · usar otro puerto");
+  console.log("  Option 3 · use another port");
   console.log(`    $env:PORT=4100 ; npm run dev`);
   console.log("");
   process.exit(1);
@@ -93,13 +93,13 @@ void (env.grpcPort === 0
   ? Promise.resolve(0)
   : startGrpcServer(env.grpcPort)
 ).then((port) => {
-  if (port > 0) console.log(`  → Capa gRPC activa en ${port}`);
+  if (port > 0) console.log(`  → gRPC layer active on ${port}`);
 }).catch((error: Error) => {
-  console.warn(`  ! gRPC no pudo arrancar: ${error.message}`);
+  console.warn(`  ! gRPC failed to start: ${error.message}`);
 });
 
 function shutdown(signal: string): void {
-  console.log(`\n[server] ${signal} recibido, cerrando...`);
+  console.log(`\n[server] ${signal} received, shutting down...`);
   server.close(() => {
     void stopGrpcServer();
     closeDb();
