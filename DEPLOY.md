@@ -165,6 +165,20 @@ llamar al modelo, así que el rechazo funciona incluso sin clave y sin gastar
 tokens. Si el proveedor falla, responde el texto local y el endpoint sigue
 devolviendo 200 con `source: "llm-fallback"` o `"local-model"`.
 
+### Recetas nuevas con IA
+
+`POST /api/recipes/generate` usa el mismo proveedor para crear una receta
+completa y guardarla en Supabase. El catálogo deja de estar limitado a las 40
+recetas iniciales: cada generación válida suma una más y funciona como cualquier
+otra (favoritos, historial, búsqueda y recomendaciones).
+
+```
+AI_RECIPE_TIMEOUT_MS=20000
+```
+
+La receta se valida antes de guardarse. Si el modelo devuelve datos incompletos,
+el endpoint responde 502 y no modifica la base. Sin clave de IA responde 503.
+
 ---
 
 ## 5. Probar la base desde local (opcional pero recomendado)
@@ -220,6 +234,11 @@ curl.exe -s -o NUL -w "%{http_code}" https://fron-food-ia.vercel.app
 curl.exe -s -X POST https://back-foodia.onrender.com/api/assistant/chat `
   -H "Content-Type: application/json" `
   -d "{\"message\":\"ayúdame con una suma: 2+2\"}"
+
+# 3c. Generar una receta nueva (suma una al catálogo)
+curl.exe -s -X POST https://back-foodia.onrender.com/api/recipes/generate `
+  -H "Content-Type: application/json" `
+  -d "{\"idea\":\"cena rápida con calabaza\"}"
 
 # 4. Datos reales: crea una cuenta en el sitio, guarda un favorito,
 #    recarga y comprueba que sigue ahí.

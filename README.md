@@ -23,7 +23,7 @@ esquema y los datos se crean igual de solos. Ver [`DEPLOY.md`](./DEPLOY.md).
 | `npm run dev` | Servidor con recarga automática |
 | `npm start` | Servidor normal |
 | `npm run seed` | Siembra la base (idempotente) |
-| `npm test` | 281 pruebas: motor de IA, API y persistencia |
+| `npm test` | 296 pruebas: motor de IA, API y persistencia |
 | `npm run typecheck` | `tsc --noEmit` |
 | `node --experimental-strip-types scripts/smoke.ts` | Prueba de humo de los 26 endpoints |
 
@@ -271,7 +271,7 @@ curl -X POST http://localhost:4000/api/auth/logout \
 
 ### Proveedor de IA
 
-El narrador de recomendaciones y el asistente de cocina aceptan dos proveedores con el mismo protocolo chat-completions: `AI_PROVIDER=openai` y `AI_PROVIDER=groq` (Groq tiene capa gratuita y es OpenAI-compatible). Cada proveedor trae su endpoint y su modelo por defecto, y si no hay llave o falla la llamada, el texto local determinístico responde igual (`local-model`).
+El narrador de recomendaciones, el asistente de cocina y el generador de recetas aceptan dos proveedores con el mismo protocolo chat-completions: `AI_PROVIDER=openai` y `AI_PROVIDER=groq` (Groq tiene capa gratuita y es OpenAI-compatible). Cada proveedor trae su endpoint y su modelo por defecto, y si no hay llave o falla la llamada, el texto local determinístico responde igual (`local-model`). La generación de recetas nuevas sí necesita proveedor: sin clave responde 503.
 
 ### Chatbot general
 
@@ -312,6 +312,20 @@ curl -X POST http://localhost:4000/api/assistant/chat \
 ```
 
 El cuerpo acepta `message` (obligatorio, máximo 600 caracteres), `history` (hasta 12 turnos) y `userId` opcional. Si llega `userId` con sesión iniciada, el prompt incluye la dieta y las alergias declaradas. El tiempo de espera del proveedor se ajusta con `AI_CHAT_TIMEOUT_MS` (12 s por defecto). El endpoint comparte el límite de 40 peticiones por minuto con las rutas de IA.
+
+### Recetas generadas con IA
+
+El catálogo ya no tiene un tope de 40: `POST /api/recipes/generate` pide una receta nueva al modelo, la valida y la guarda en las mismas tablas que las curadas.
+
+```bash
+curl -X POST http://localhost:4000/api/recipes/generate \
+  -H 'Content-Type: application/json' \
+  -d '{"idea":"cena rápida con calabaza","servings":2}'
+```
+
+El cuerpo acepta `idea` (máximo 240 caracteres), `diet`, `servings` y `userId` opcional. La respuesta es `201` con `{ dish, generated: true, total }`. Desde ese momento la receta aparece en el catálogo, se puede buscar, guardar en favoritos, marcar como preparada y recomendar como cualquier otra.
+
+Antes de guardar, `src/ai/recipeSchema.ts` exige nombre, categoría, tiempos, macros por porción, ingredientes, pasos y los 13 ejes del recomendador. Los alérgenos se derivan de las etiquetas de los ingredientes, no de lo que diga el modelo. Si la IA no está configurada o devuelve una receta incompleta, el endpoint responde `503` o `502` sin tocar el catálogo. El tiempo de espera se ajusta con `AI_RECIPE_TIMEOUT_MS` (20 s por defecto).
 
 ### gRPC
 
@@ -359,6 +373,8 @@ AI_API_KEY=
 AI_MODEL=gpt-4o-mini
 # Tiempo máximo de espera del chatbot general (ms)
 AI_CHAT_TIMEOUT_MS=12000
+# Tiempo máximo para generar una receta completa (ms)
+AI_RECIPE_TIMEOUT_MS=20000
 ```
 
 ## Pruebas
