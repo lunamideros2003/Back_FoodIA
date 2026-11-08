@@ -102,8 +102,8 @@ grpcWebRouter.get("/", (_req: Request, res: Response) => {
   });
 });
 
-// gRPC-Web preflight: los navegadores preguntan antes del POST cross-origin.
-// Responde 204 vacío con los mismos headers que la respuesta real.
+// gRPC-Web preflight: browsers ask before the cross-origin POST.
+// Replies with an empty 204 and the same headers as the real response.
 grpcWebRouter.options("/:service/:method", (_req: Request, res: Response) => {
   res.status(204);
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
