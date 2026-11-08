@@ -34,9 +34,9 @@ export function createApp(): Express {
         // A rejected origin is the single most common "it works on my machine"
         // problem once the frontend is deployed, so name the fix in the log.
         console.warn(
-          `[cors] Bloqueado: ${origin}\n` +
-            `        Agrega esa URL a CORS_ORIGIN en las variables de entorno del servidor.\n` +
-            `        Orígenes permitidos ahora: ${env.corsOrigins.join(", ") || "(ninguno)"}`,
+          `[cors] Blocked: ${origin}\n` +
+            `        Add that URL to CORS_ORIGIN in the server environment variables.\n` +
+            `        Allowed origins right now: ${env.corsOrigins.join(", ") || "(none)"}`,
         );
         callback(new Error(`Origen bloqueado por CORS: ${origin}`));
       },
