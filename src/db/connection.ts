@@ -67,9 +67,9 @@ export function getDb(): DatabaseSync {
     if (env.databaseFile === FALLBACK_FILE) throw error;
 
     console.warn(
-      `[db] No se pudo abrir ${env.databaseFile} (${(error as Error).message}).\n` +
-        `     Se usará ${FALLBACK_FILE}. Los datos NO se guardarán de forma permanente:\n` +
-        `     en un hosting sin disco montado agrega un volumen en ${path.dirname(env.databaseFile)}.`,
+      `[db] Could not open ${env.databaseFile} (${(error as Error).message}).\n` +
+        `     Falling back to ${FALLBACK_FILE}. Data will NOT be stored permanently:\n` +
+        `     on a host without a mounted disk, add a volume at ${path.dirname(env.databaseFile)}.`,
     );
     instance = openDatabase(FALLBACK_FILE);
     activeFile = FALLBACK_FILE;
