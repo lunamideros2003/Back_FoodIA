@@ -333,7 +333,7 @@ router.get("/catalog/facets", (_req, res) => {
 });
 
 /**
- * "Sorpréndeme": a single recipe chosen at random from whatever the filters
+ * "Surprise me": a single recipe chosen at random from whatever the filters
  * leave. It never picks something the person excluded.
  */
 router.get("/dishes/random", (req, res) => {

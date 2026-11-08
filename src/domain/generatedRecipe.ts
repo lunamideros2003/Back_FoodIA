@@ -2,7 +2,7 @@ import type { Dish, DishAxes } from "./types.ts";
 
 /** What the person can ask the generator for. */
 export interface GeneratedRecipeInput {
-  /** A free-text idea: "algo con calabaza", "cena rápida sin gluten". */
+  /** A free-text idea: "something with pumpkin", "quick gluten-free dinner". */
   idea?: string;
   diet?: "omnivore" | "vegetarian" | "vegan" | "pescatarian";
   servings?: number;
