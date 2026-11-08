@@ -21,8 +21,8 @@ export function WARNINGS({ isProduction, corsOrigins, hasDatabaseUrl }: CheckInp
 
   if (hasDatabaseUrl === false) {
     warnings.push(
-      "Sin DATABASE_URL la base sigue siendo un archivo SQLite: en Render sin disco " +
-        "se borra en cada despliegue. Conecta Supabase y pega su cadena en DATABASE_URL.",
+      "Without DATABASE_URL the database is still a SQLite file: on Render without a disk " +
+        "it is wiped on every deploy. Connect Supabase and paste its connection string into DATABASE_URL.",
     );
   }
 
@@ -31,25 +31,25 @@ export function WARNINGS({ isProduction, corsOrigins, hasDatabaseUrl }: CheckInp
 
   if (allowsAnyOrigin) {
     warnings.push(
-      "CORS_ORIGIN está en «*». Funciona, pero deja abierto el API. En un proyecto de clase está bien.",
+      "CORS_ORIGIN is set to «*». It works, but leaves the API open. That is fine for a class project.",
     );
   } else if (localhostOnly) {
     warnings.push(
-      "CORS_ORIGIN solo permite localhost. Tu frontend en Vercel será bloqueado: " +
-        "agrega la URL del sitio, separada por coma.",
+      "CORS_ORIGIN only allows localhost. Your Vercel frontend will be blocked: " +
+        "add the site URL, separated by commas.",
     );
   } else if (
     corsOrigins.length === 0 ||
     !corsOrigins.some((origin) => PRODUCTION_FRONTEND_HINTS.some((hint) => origin.includes(hint)))
   ) {
     warnings.push(
-      "Ningún origen de CORS parece un sitio desplegado (vercel.app, netlify.app…). " +
-        `Revisa CORS_ORIGIN: ${corsOrigins.join(", ") || "(vacío)"}`,
+      "No CORS origin looks like a deployed site (vercel.app, netlify.app…). " +
+        `Check CORS_ORIGIN: ${corsOrigins.join(", ") || "(empty)"}`,
     );
   }
 
   if (corsOrigins.length > 1) {
-    warnings.push("Si Vercel te dio una URL con guiones (foodmood-ia-abc123.vercel.app), agrégala tal cual.");
+    warnings.push("If Vercel gave you a URL with dashes (foodmood-ia-abc123.vercel.app), add it exactly as is.");
   }
 
   return warnings;
