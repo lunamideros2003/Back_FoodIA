@@ -30,6 +30,8 @@ import { env } from "../config/env.ts";
 import { allergensOf, ALLERGEN_LABELS_ES } from "../ai/allergens.ts";
 import { GENERAL_SAFETY_NOTE, safetyNotesForDish } from "../ai/safety.ts";
 import { findSubstitutionsFor } from "../db/seed/dietary.ts";
+import { generateRecipeDraft } from "../ai/recipeGenerator.ts";
+import { catalogueSize, saveGeneratedRecipe } from "../services/generatedRecipeService.ts";
 import type { Dish, MoodKey } from "../domain/types.ts";
 
 export const router = Router();
@@ -197,6 +199,13 @@ const dishQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).optional(),
 });
 
+const generateRecipeSchema = z.object({
+  idea: z.string().trim().max(240).optional(),
+  diet: z.enum(DIETS).optional(),
+  servings: z.number().int().min(1).max(12).optional(),
+  userId: z.number().int().positive().optional(),
+});
+
 function matchesDiet(dish: Dish, diet: (typeof DIETS)[number] | undefined): boolean {
   if (!diet || diet === "omnivore") return true;
   if (diet === "vegetarian") return dish.isVegetarian;
@@ -353,6 +362,30 @@ router.get("/dishes/random", (req, res) => {
   const dish = items[Math.floor(Math.random() * items.length)];
   res.json({ dish, total: items.length });
 });
+
+/**
+ * Creates one new recipe with the model and stores it in the catalogue.
+ * The recipe is validated first, so the catalogue only ever grows with
+ * complete, cookable dishes.
+ */
+router.post(
+  "/recipes/generate",
+  asyncRoute(async (req, res) => {
+    const body = generateRecipeSchema.parse(req.body ?? {});
+    if (body.userId) requireAuthUser(req, body.userId);
+
+    const user = body.userId ? getUser(body.userId) : null;
+    const draft = await generateRecipeDraft({
+      idea: body.idea,
+      diet: body.diet ?? user?.preferences.diet,
+      servings: body.servings,
+      allergies: user?.preferences.allergies,
+    });
+    const dish = saveGeneratedRecipe(draft);
+
+    res.status(201).json({ dish, generated: true, total: catalogueSize() });
+  }),
+);
 
 router.get("/dishes/:slug", (req, res) => {
   const dish = findDishBySlug(req.params.slug);

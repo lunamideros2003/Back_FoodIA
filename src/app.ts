@@ -108,6 +108,7 @@ export function createApp(): Express {
         "GET  /api/recipes/:slug/allergens",
         "GET  /api/recipes/:slug/safety",
         "POST /api/recipes/:slug/assistant",
+        "POST /api/recipes/generate",
         "POST /api/assistant/chat",
         "POST /api/recipes/:slug/substitute",
         "POST /api/recipes/:slug/adapt",
