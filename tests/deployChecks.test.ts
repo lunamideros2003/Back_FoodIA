@@ -12,7 +12,7 @@ describe("deployment warnings", () => {
       isProduction: true,
       corsOrigins: ["http://localhost:5173"],
     });
-    assert.ok(warnings.some((warning) => warning.includes("solo permite localhost")));
+    assert.ok(warnings.some((warning) => warning.includes("only allows localhost")));
   });
 
   it("notes that a wildcard origin is open but acceptable for a class", () => {
@@ -25,7 +25,7 @@ describe("deployment warnings", () => {
       isProduction: true,
       corsOrigins: ["https://example.com"],
     });
-    assert.ok(warnings.some((warning) => warning.includes("Ningún origen de CORS")));
+    assert.ok(warnings.some((warning) => warning.includes("No CORS origin")));
   });
 
   it("accepts a vercel origin without complaining about the domain", () => {
@@ -33,7 +33,7 @@ describe("deployment warnings", () => {
       isProduction: true,
       corsOrigins: ["https://foodmood-ia.vercel.app"],
     });
-    assert.ok(!warnings.some((warning) => warning.includes("Ningún origen de CORS")));
+    assert.ok(!warnings.some((warning) => warning.includes("No CORS origin")));
   });
 
   it("reminds about the full vercel URL when there are several origins", () => {
@@ -41,6 +41,6 @@ describe("deployment warnings", () => {
       isProduction: true,
       corsOrigins: ["https://a.vercel.app", "https://foodmood-ia-abc123.vercel.app"],
     });
-    assert.ok(warnings.some((warning) => warning.includes("con guiones")));
+    assert.ok(warnings.some((warning) => warning.includes("with dashes")));
   });
 });
