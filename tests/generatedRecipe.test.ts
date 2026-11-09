@@ -34,6 +34,14 @@ describe("generated recipe storage", () => {
   it("builds a URL-safe slug", () => {
     assert.equal(service.recipeSlug("Tarta de calabaza y queso"), "tarta-de-calabaza-y-queso");
     assert.equal(service.recipeSlug("  Tarta   de calabaza  "), "tarta-de-calabaza");
+    assert.equal(service.recipeSlug("Ñandú al ají"), "nandu-al-aji");
+    assert.equal(service.recipeSlug("¡Sin números 123!"), "sin-numeros-123");
+  });
+
+  it("keeps a generated slug short enough for a URL", () => {
+    const name = "Receta de la abuela con muchos ingredientes y un nombre largo".repeat(4);
+
+    assert.ok(service.recipeSlug(name).length <= 60);
   });
 
   it("adds the recipe to the catalogue with its ingredients and steps", () => {
