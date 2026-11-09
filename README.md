@@ -2,6 +2,12 @@
 
 API de recomendaciones de comida según el estado de ánimo, con el motor de IA que las produce.
 
+## Convenciones
+
+- Nombres de archivos, variables, funciones, tipos y comentarios van en inglés.
+- Solo los textos que ve la persona usuaria van en español: mensajes de la API que el frontend muestra tal cual, errores y contenido de las recetas.
+- Los valores de dominio visibles (`Desayuno`, `facil`, etiquetas de ingredientes) se mantienen en español porque forman parte de la interfaz.
+
 ## Arranque
 
 ```bash
