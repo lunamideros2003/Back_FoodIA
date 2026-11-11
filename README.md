@@ -1,427 +1,79 @@
 # FoodMood IA — Backend
 
-API de recomendaciones de comida según el estado de ánimo, con el motor de IA que las produce.
+Este es el backend de FoodMood IA, una app web que recomienda recetas según cómo te sientes, el tiempo que tienes y lo que hay en tu cocina.
 
-## Convenciones
+El frontend está en otro repositorio: [Fron_FoodIA](https://github.com/lunamideros2003/Fron_FoodIA).
 
-- Nombres de archivos, variables, funciones, tipos y comentarios van en inglés.
-- Solo los textos que ve la persona usuaria van en español: mensajes de la API que el frontend muestra tal cual, errores y contenido de las recetas.
-- Los valores de dominio visibles (`Desayuno`, `facil`, etiquetas de ingredientes) se mantienen en español porque forman parte de la interfaz.
+## Qué hace
 
-## Arranque
+- Recomienda recetas según el ánimo, el tiempo, el antojo, la dieta y las alergias.
+- Tiene un catálogo base de 40 recetas y permite crear recetas nuevas con IA.
+- Guarda cuentas, favoritos, historial, notas y preferencias.
+- Incluye un chat sobre comida y un asistente para cocinar paso a paso.
+- Expone una API REST y también una capa gRPC.
+
+## Tecnologías
+
+- Node.js 22 con TypeScript
+- Express
+- Zod para validar datos
+- SQLite en local y PostgreSQL (Supabase) en producción
+- gRPC con `@grpc/grpc-js`
+- IA:
+  - Motor propio local con TF-IDF, filtrado colaborativo y modelo de ánimo.
+  - Proveedor externo compatible con OpenAI (Groq u OpenAI) para el chat, las explicaciones y la generación de recetas.
+  - Si no hay proveedor o falla, la app sigue funcionando con el motor local.
+
+## Cómo correrlo
+
+Necesitas Node 22.6 o superior.
 
 ```bash
 npm install
-npm run dev        # http://localhost:4000
+npm run dev
 ```
 
-La base de datos SQLite se crea y se siembra sola en el primer arranque. Para rehacerla:
+El servidor queda en `http://localhost:4000`. La base SQLite se crea y se llena sola la primera vez.
+
+Para rehacer la base:
 
 ```bash
 npm run seed -- --force
 ```
 
-Para usar Postgres (Supabase) en vez de SQLite basta con definir `DATABASE_URL`; el
-esquema y los datos se crean igual de solos. Ver [`DEPLOY.md`](./DEPLOY.md).
-
-| Comando | Qué hace |
-|---|---|
-| `npm run dev` | Servidor con recarga automática |
-| `npm start` | Servidor normal |
-| `npm run seed` | Siembra la base (idempotente) |
-| `npm test` | 296 pruebas: motor de IA, API y persistencia |
-| `npm run typecheck` | `tsc --noEmit` |
-| `node --experimental-strip-types scripts/smoke.ts` | Prueba de humo de los 26 endpoints |
-
-## Stack
-
-- **Node 22.6+** ejecutando **TypeScript directamente** (sin paso de build: *type stripping* nativo)
-- **Express 5** para el HTTP
-- **`node:sqlite`** — SQLite viene en Node, no hay dependencias nativas que compilar
-- **`pg` + Postgres** — misma API síncrona sobre Supabase cuando hay `DATABASE_URL`
-- **Zod** para validar la entrada
-- **Cero dependencias de IA**: el modelo es propio y funciona sin internet
-
-## Estructura
-
-```
-src/
-├── ai/                    El modelo
-│   ├── vector.ts          Coseno, centroide, utilidades
-│   ├── text.ts            Tokenizador español + TF-IDF
-│   ├── moodModel.ts       Perfil por ánimo, entrenado en línea y explicable
-│   ├── tasteProfile.ts    Perfil de gusto del usuario (basado en contenido)
-│   ├── collaborative.ts   ItemKNN sobre el historial implícito
-│   ├── intent.ts          Extracción de intención en lenguaje natural
-│   ├── health.ts          Condiciones de salud, umbrales y filtros
-│   ├── recommender.ts     Pipeline de ranking + MMR + precedencia del ánimo
-│   └── narrative.ts       Explicación en español (local o LLM)
-├── db/
-│   ├── connection.ts      Elige SQLite o Postgres según DATABASE_URL
-│   ├── schema.ts          Tablas para SQLite
-│   ├── schema.postgres.ts Tablas para Postgres (Supabase)
-│   ├── postgres.ts        Adaptador síncrono sobre Postgres
-│   ├── postgresSql.ts     Traduce el dialecto SQLite → Postgres
-│   ├── postgresWorker.mjs Worker que mantiene la conexión real
-│   ├── seed.ts            Siembra
-│   └── seed/              Datos: 6 estados, 40 platos, 40 recetas, historial demo
-├── domain/types.ts        Tipos compartidos
-├── services/              Repositorios, recomendaciones, balance y usuarios
-├── routes/api.routes.ts   Endpoints + validación
-└── server.ts              Arranque
-```
-
-## El modelo, en detalle
-
-### 1. Representación del plato
-
-Cada plato tiene un vector de **13 rasgos** en `[0, 1]`: `comfort`, `energy`, `speed`,
-`lightness`, `richness`, `spice`, `sweetness`, `freshness`, `protein`, `indulgence`, `warmth`,
-`complexity`, `value`. Es una representación semántica que permite comparar "qué tan reconfortante
-es" con "qué tan rápido se hace" en el mismo espacio, cosa que un nombre o una categoría no
-permiten.
-
-### 2. Perfil de estado de ánimo con aprendizaje en línea
-
-Cada ánimo define un **objetivo** (a qué perfil de sabor debería acercarse lo que la gente pide en
-ese estado) y una **importancia por rasgo**.
-
-Sin datos, manda el prior curado. A medida que llegan interacciones, se mezclan:
-
-```
-confianza = observaciones / (observaciones + 8)
-objetivo  = prior·(1 − confianza) + observado·confianza
-```
-
-El `+8` es deliberado: con tres clics no se puede reescribir el significado de un ánimo.
-
-Los pesos por rasgo respetan el espacio del prior. Un rasgo que el prior considera irrelevante
-para un ánimo (la *rapidez* no es lo que hace que un cansado quiera consuelo) puede entrar, pero
-con un techo bajo. Así el modelo aprende sin perder el sentido del dominio.
-
-### 3. Perfil de gusto (contenido)
-
-TF-IDF sobre el texto de cada plato. El vector de un usuario es el **centroide ponderado** de sus
-interacciones positivas, restando las negativas. Mezclado con la nota que escribió, ambos
-normalizados a longitud 1 para que ninguno de los dos channels anule al otro.
-
-Funciona con acentos y stopwords en español: `tokenize("RÁPIDO y barato")` → `["rapido", "barato"]`.
-
-### 4. Filtrado colaborativo (ItemKNN)
-
-```
-like 1.0 · save 1.1 · cook 1.3 · view 0.2 (x0.5) · dislike −1.4
-rate → (puntuación/5 − 0.4) × 1.6
-```
-
-Cada plato es un vector de usuarios. La similitud es coseno, penalizada por la cantidad de
-evidencia (`overlap/(overlap+1.5)`) para que un solo clic compartido no gane. Al predecir, un
-plato ya visto por el usuario se excluye siempre.
-
-### 5. Intención en lenguaje natural
-
-TF-IDF entiende "algo con pollo" pero no entiende "**no** quiero nada picante". `intent.ts` lee la
-forma de la frase y extrae restricciones duras:
-
-| Lo que escribe el usuario | Restricción |
-|---|---|
-| `no quiero nada picante` | picor ≤ 0.2 |
-| `nada de dulce` | dulzor ≤ 0.35 |
-| `muy rápido porfa` | ≤ 20 min |
-| `algo barato y ligero` | precio 1, ligereza ≥ 0.6 |
-| `vegano por favor` | dieta vegana |
-| `sin carne y calientito` | vegetariano, calidez ≥ 0.6 |
-
-Los patrones se compilan sin acentos contra el texto normalizado, así que "rápido" y "rapido"
-se comportan igual.
-
-### 6. Filtros de salud
-
-`src/ai/health.ts` es una capa separada porque responde otra pregunta: no *qué se antoja* sino
-*qué es seguro*. Es la única capa que puede **excluir** un plato en vez de solo bajarlo de puesto.
-
-| Condición | Excluye | Advierte |
-|---|---|---|
-| Diabetes | > 22 g azúcar/porción | > 15 g; suma fibra (≥ 6 g) y proteína (≥ 25 g) |
-| Hipertensión | > 800 mg sodio | > 400 mg |
-| Celiaquía | cualquier gluten | — |
-| Intolerancia a la lactosa | leche, queso, mantequilla, crema, yogur | — |
-| Colesterol alto | > 30 g grasa | > 22 g |
-
-Los umbrales se calibraron contra la distribución real del catálogo, no a ojo: con los valores
-iniciales ningún filtro se disparaba nunca.
-
-Cuando el usuario no ha dicho nada y el grupo de recomendación es peligroso
-(≥ 40% con azúcar, sodio o grasa altos), la respuesta trae `needsHealthInfo: true` para que la
-interfaz pregunte antes de servir la respuesta.
-
-`GET /api/users/:id/health-report` traduce el perfil a lenguaje humano: qué platos quedaron
-fuera y por qué.
-
-### 7. Precedencia del ánimo explícito
-
-Un detalle que solo aparece al probar con datos reales: el gusto aprendido puede anular el ánimo.
-Lucía es una usuaria de comida reconfortante; cuando pedía "triste", el modelo le devolvía ramen
-y pasta — sus favoritos — en vez de algo dulce.
-
-El arreglo distingue dos cosas que no son lo mismo:
-
-- **Elegir un ánimo es una instrucción.** La persona lo acaba de declarar.
-- **El perfil de gusto es un pasado.** Es un supuesto, no un pedido.
-
-```
-si mejorAfinidad(ánimo) − afinidadDelPlatoQueMandaElGusto > 0.15  →  pesos a favor del ánimo
-```
-
-| Canal | Normal | Con nota escrita | Ánimo explícito gana |
-|---|---|---|---|
-| Ajuste con el ánimo | 0.30–0.52 | 0.18 | **0.62** |
-| Similitud con tu gusto | 0.14–0.20 | 0.57 | 0.08 |
-| Colaborativo | 0.12–0.26 | 0.08 | 0.08 |
-| Preferencias | 0.12–0.14 | 0.10 | 0.14 |
-
-La regla **no** se aplica cuando el usuario escribió una nota, porque esa nota es la señal más
-explícita que existe.
-
-### 8. Balance nutricional
-
-`POST /api/balance` es la segunda mitad de la conversación. Recibe el plato que el usuario va a
-comer y cuántas porciones, y devuelve qué conviene para el resto del día.
-
-La severidad no depende solo de las calorías. Un postre de 450 kcal es normal en energía pero
-extremo en azúcar, y el consejo que necesita la persona es distinto:
-
-```
-carga = max(calorías / meta,  azúcar / 50 g)     (50 g = referencia OMS de azúcares libres)
-```
-
-| Carga | Severidad | Tono del mensaje |
-|---|---|---|
-| ≤ 0.45 | `ok` | "Todavía tienes mucho día por delante" |
-| ≤ 0.70 | `watch` | "Vas bien, pero cuídate el resto del día" |
-| ≤ 1.00 | `high` | "Buen golpe de azúcar, ahora toca suave" |
-| > 1.00 | `over` | "Ya te pasaste por hoy, y está bien" |
-
-Las sugerencias ligeras usan un modo de ranking aparte, con la carga de calorías contra **un
-cuarto de la meta diaria** y el azúcar y la grasa pesados explícitamente. Además, si el ánimo es
-bajo, se ofrece **una opción de consuelo** aparte: caliente, abrazadora y ligera, porque una
-ensalada de verduras frías no es lo que hace falta cuando estás mal.
-
-### 9. Explicación
-
-```
-total = Σ canal × peso
-```
-
-| Canal | Sin historial | Con historial | Con nota escrita |
-|---|---|---|---|
-| Ajuste con el ánimo | 0.52 | 0.30 | 0.18 |
-| Similitud con tu gusto | 0.14 | 0.20 | 0.57 |
-| Colaborativo | 0.12 | 0.26 | 0.08 |
-| Preferencias | 0.12 | 0.14 | 0.10 |
-| Novedad | 0.04 | 0.05 | 0.02 |
-| Popularidad | 0.06 | 0.05 | 0.05 |
-
-Si el usuario escribe una nota, esa nota manda: es una señal más explícita que su estado de ánimo.
-
-### 7. Diversidad (MMR)
-
-```
-valor = λ·puntaje − (1−λ)·maxSimilitudConLoYaElegido     (λ = 0.78)
-```
-
-Sin esto, un ánimo de confort devuelve cinco variaciones de la misma sopa. Con esto, si una opción
-diferente está casi igual de bien puntuada, entra.
-
-### 8. Explicación
-
-Cada eje tiene una frase en español ya escrita (`"se siente como un abrazo"`, `"se arma en nada"`),
-así que la oración sale bien gramatizada sea cual sea el número del modelo. No se arma con
-plantillas de adjetivos, que es donde estos sistemas suelen romperse.
-
-
-## Cuentas y sesiones
-
-Las cuentas de personas reales usan correo y contraseña:
-
-- `POST /api/auth/register` crea la cuenta (hash scrypt + sal aleatoria) y entrega un token de sesión.
-- `POST /api/auth/login` entrega otro token; la sesión vive un mes en la tabla `auth_sessions` (hash SHA-256 del token, nunca el token).
-- `GET /api/auth/me` dice quién es el titular; `POST /api/auth/logout` cierra la sesión actual.
-- Todo lo que pertenece a una persona (favoritos, historial, preferencias, health-report, balance, consumo) exige su propio bearer token: otra sesión recibe 403 y un perfil que no existe, 404.
-- `GET/POST /api/users` y el catálogo siguen abiertos: son datos públicos y perfiles de demostración.
-
-La zona de autenticación tiene su propio rate limit (30 intentos por minuto por IP).
-
-Ejemplos con `curl`:
-
-```bash
-# Crear cuenta (devuelve token de sesión)
-curl -X POST http://localhost:4000/api/auth/register \
-  -H 'Content-Type: application/json' \
-  -d '{"email":"luna@correo.com","password":"abc12345","displayName":"Luna"}'
-
-# Iniciar sesión
-curl -X POST http://localhost:4000/api/auth/login \
-  -H 'Content-Type: application/json' \
-  -d '{"email":"luna@correo.com","password":"abc12345"}'
-
-# Error de validación (correo sin @ → 400 con detalle de campo)
-curl -X POST http://localhost:4000/api/auth/register \
-  -H 'Content-Type: application/json' \
-  -d '{"email":"lunacorreo.com","password":"abc12345","displayName":"Luna"}' | jq
-
-# Cerrar sesión (necesita el token en la cabecera Authorization)
-curl -X POST http://localhost:4000/api/auth/logout \
-  -H 'Authorization: Bearer <token>'
-```
-
-### Proveedor de IA
-
-El narrador de recomendaciones, el asistente de cocina y el generador de recetas aceptan dos proveedores con el mismo protocolo chat-completions: `AI_PROVIDER=openai` y `AI_PROVIDER=groq` (Groq tiene capa gratuita y es OpenAI-compatible). Cada proveedor trae su endpoint y su modelo por defecto, y si no hay llave o falla la llamada, el texto local determinístico responde igual (`local-model`). La generación de recetas nuevas sí necesita proveedor: sin clave responde 503.
-
-### Chatbot general
-
-`POST /api/assistant/chat` es el chat de la app, separado del asistente de una receta concreta. Habla de tres temas: comida y cocina, dietas y alimentación, y cómo usar FoodMood IA. La bienvenida y las respuestas locales lo dicen desde el primer mensaje.
-
-```bash
-curl -X POST http://localhost:4000/api/assistant/chat \
-  -H 'Content-Type: application/json' \
-  -d '{"message":"¿Qué puedo cocinar con arroz y pollo?"}'
-```
-
-```json
-{
-  "answer": "Puedo ayudarte con recetas, ingredientes...",
-  "source": "llm",
-  "topic": "food",
-  "inScope": true,
-  "suggestions": ["¿Qué puedo cocinar con lo que tengo en la nevera?", "..."]
-}
-```
-
-Antes de llamar al modelo, `src/ai/chatTopics.ts` clasifica el mensaje. Una suma, una tarea, programación, política, deportes o el clima se marcan como `off-topic` y se responden en el acto con `inScope: false`, sin gastar una llamada de IA:
-
-```bash
-curl -X POST http://localhost:4000/api/assistant/chat \
-  -H 'Content-Type: application/json' \
-  -d '{"message":"ayúdame con una suma: 2+2"}'
-```
-
-```json
-{
-  "answer": "Eso se sale de lo que puedo hacer: solo te ayudo con comida, dietas y el uso de FoodMood IA. No resuelvo sumas, tareas ni preguntas de otros temas...",
-  "source": "local-model",
-  "topic": "off-topic",
-  "inScope": false,
-  "suggestions": ["..."]
-}
-```
-
-El cuerpo acepta `message` (obligatorio, máximo 600 caracteres), `history` (hasta 12 turnos) y `userId` opcional. Si llega `userId` con sesión iniciada, el prompt incluye la dieta y las alergias declaradas. El tiempo de espera del proveedor se ajusta con `AI_CHAT_TIMEOUT_MS` (12 s por defecto). El endpoint comparte el límite de 40 peticiones por minuto con las rutas de IA.
-
-### Recetas generadas con IA
-
-El catálogo ya no tiene un tope fijo: `POST /api/recipes/generate` pide una receta nueva al modelo, la valida y la guarda en las mismas tablas que las curadas.
-
-```bash
-curl -X POST http://localhost:4000/api/recipes/generate \
-  -H 'Content-Type: application/json' \
-  -d '{"idea":"cena rápida con calabaza","servings":2}'
-```
-
-El cuerpo acepta `idea` (máximo 240 caracteres), `diet`, `servings` y `userId` opcional. La respuesta es `201` con `{ dish, generated: true, total }`. Desde ese momento la receta aparece en el catálogo, se puede buscar, guardar en favoritos, marcar como preparada y recomendar como cualquier otra. El campo `total` queda disponible para clientes que lo necesiten, pero la interfaz no lo muestra: el catálogo se presenta como una lista abierta y no como un límite.
-
-Antes de guardar, `src/ai/recipeSchema.ts` exige nombre, categoría, tiempos, macros por porción, ingredientes, pasos y los 13 ejes del recomendador. Los alérgenos se derivan de las etiquetas de los ingredientes, no de lo que diga el modelo. Si la IA no está configurada o devuelve una receta incompleta, el endpoint responde `503` o `502` sin tocar el catálogo. El tiempo de espera se ajusta con `AI_RECIPE_TIMEOUT_MS` (20 s por defecto).
-
-### gRPC
-
-El backend también habla gRPC nativo (HTTP/2 + protobuf) en su propio puerto, sin tocar la API REST:
-
-- Contrato: `grpc/foodmood.proto`, paquete `foodmood.v1`, servicio `FoodMoodStatus` con dos llamadas unarias: `GetStatus` (servicio, versión, proveedor de IA, uptime y tamaño del catálogo) y `GetDish` (un plato por id; `NOT_FOUND` si no existe).
-- Servidor: `@grpc/grpc-js` carga el `.proto` al arrancar (sin código generado que se desincronice) y escucha en `GRPC_PORT` (4002 por defecto; `0` apaga la capa). Los handlers viven en `src/grpc/service.ts` y son los mismos que usa el puente web.
-- Cliente de demostración: `npm run grpc:probe` llama a las dos RPC y muestra las respuestas y el código 5 del plato inexistente.
-
-```bash
-npm run grpc:probe
-```
-
-- Puente para el navegador: `POST /api/grpc/foodmood.v1.FoodMoodStatus/GetStatus` y `.../GetDish` hablan gRPC-Web sobre HTTP/1.1 (`application/grpc-web+proto`, y también la variante `-text` en base64), así el frontend consume el mismo contrato sin Envoy. Los trailers viajan como frame `0x80` con `grpc-status`.
-
-```bash
-# GetStatus del puente (payload vacío con frame 0x00)
-curl -X POST http://localhost:4000/api/grpc/foodmood.v1.FoodMoodStatus/GetStatus \
-  -H 'Content-Type: application/grpc-web+proto' \
-  --data-binary $'\x00\x00\x00\x00\x00' | xxd | head
-
-# Descubrimiento del contrato
-curl http://localhost:4000/api/grpc | jq
-```
-
-- Si el puerto gRPC está ocupado, la API REST sigue funcionando: solo se pierde esa capa.
-
 ## Variables de entorno
 
-Copia `.env.example` a `.env`. Todo tiene valores por defecto y funciona sin tocar nada.
+Copia `.env.example` a `.env`. Para desarrollo no hace falta cambiar nada.
+
+Lo más importante:
 
 ```env
 PORT=4000
 DATABASE_FILE=./data/foodmood.db
-CORS_ORIGIN=http://localhost:5173,http://127.0.0.1:5173
+CORS_ORIGIN=http://localhost:5173
 
-# gRPC nativo en su propio puerto; 0 apaga la capa
-GRPC_PORT=4002
+# Opcional: para usar Supabase/PostgreSQL
+DATABASE_URL=
 
-# local = sin internet y sin costo (default)
-# openai = añade un LLM para la explicación, con respaldo automático al local
+# IA. Con "local" funciona sin internet y sin costo.
 AI_PROVIDER=local
-AI_BASE_URL=https://api.openai.com/v1
 AI_API_KEY=
-AI_MODEL=gpt-4o-mini
-# Tiempo máximo de espera del chatbot general (ms)
-AI_CHAT_TIMEOUT_MS=12000
-# Tiempo máximo para generar una receta completa (ms)
-AI_RECIPE_TIMEOUT_MS=20000
+AI_MODEL=
+
+# gRPC. Con 0 se apaga.
+GRPC_PORT=4002
 ```
 
 ## Pruebas
 
 ```bash
 npm test
+npm run typecheck
 ```
 
-43 pruebas que cubren:
+## Despliegue
 
-- Coseno y normalización de vectores
-- Tokenizador español y TF-IDF
-- El modelo de ánimo: ordena bien sin datos, y se mueve con los datos
-- ItemKNN: predice, exige evidencia compartida, no se autocompara, y trata un dislike como evidencia negativa
-- MMR: prefiere la opción diversa cuando puntúa casi igual
-- Intención: negaciones, acentos, y que "quiero" dentro de un "no quiero" no se confunda
-- Salud: diabetes, hipertensión, celiaquía, intolerancia a la lactosa y colesterol
-- Recetas: los 40 platos tienen pasos, porciones y consejo; la nutrición por porción está en rango
-- Precedencia del ánimo: un gusto aprendido no puede anular un "estoy triste"
-- Ranking end-to-end contra la base real: filtros de dieta, de tiempo, y el orden según el ánimo
-- Narrativa: en español, sin espacios raros antes de los puntos
+- Backend: Render → `https://back-foodia.onrender.com`
+- Base de datos: Supabase (PostgreSQL)
 
-## Reentrenamiento
-
-Ocurre automáticamente al arrancar y tras cada interacción válida (like, save, cook, rate,
-dislike). Con este volumen de datos tarda unos 10 ms, así que no hay cola ni caché que
-invalidar. Para forzarlo:
-
-```bash
-curl -X POST http://localhost:4000/api/ai/retrain
-```
-
-## Sobre las recetas
-
-Las 40 recetas viven en `src/db/seed/recipes.a.ts`, `recipes.b.ts` y `recipes.c.ts`, separadas del
-catálogo de platos a propósito: el plato dice *qué es*, la receta dice *cómo se hace*.
-
-Cada receta declara porciones, pasos, consejo del chef y los totales de azúcar, fibra y sodio de la
-**receta completa**. Al sembrar, esos tres últimos se dividen entre las porciones para que coincidan
-con las calorías y proteínas, que ya se escribían por porción. Una jarra de limonada con 32 g de
-azúcar en 4 vasos se guarda como 8 g por vaso.
-
-Un test verifica que ningún plato quede sin receta y que ningún paso termine sin puntuación, que es
-la forma más común en que estos archivos se descuidan.
+La guía completa de despliegue está en [DEPLOY.md](./DEPLOY.md).
